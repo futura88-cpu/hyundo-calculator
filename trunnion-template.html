@@ -1,0 +1,862 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>트러니언 현도 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap">
+<style id="pagestyle">@page { size: 297mm 210mm; margin: 8mm; }</style>
+<style>
+/* Layout: 왼쪽 입력 패널 + 오른쪽 결과(개략도, 전개도 미리보기, 치수표). 좁은 화면에서는 한 열. */
+:root {
+  --bg: #eef0ec;
+  --panel: #ffffff;
+  --ink: #1c231f;
+  --muted: #5d6762;
+  --line: #c8cec9;
+  --accent: #c2410c;      /* 안전 오렌지 */
+  --accent-soft: #fbe6da;
+  --steel: #3f5a6b;
+  --fill: #e3e8e4;
+  --bad: #b42318;
+  --bad-soft: #fde7e4;
+  --warn: #9a6700;
+  --warn-soft: #fff4d6;
+  --f-body: "IBM Plex Sans KR", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  --f-mono: "IBM Plex Mono", Consolas, "D2Coding", monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #151a17; --panel: #1d2420; --ink: #e6ebe7; --muted: #9aa59f; --line: #34403a;
+    --accent: #fb8a4c; --accent-soft: #3a2418; --steel: #9cc0d4; --fill: #26302b;
+    --bad: #ff8a7a; --bad-soft: #3b1d19; --warn: #f2c14e; --warn-soft: #352c14; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #151a17; --panel: #1d2420; --ink: #e6ebe7; --muted: #9aa59f; --line: #34403a;
+  --accent: #fb8a4c; --accent-soft: #3a2418; --steel: #9cc0d4; --fill: #26302b;
+  --bad: #ff8a7a; --bad-soft: #3b1d19; --warn: #f2c14e; --warn-soft: #352c14; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--f-body); padding: 0 16px; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 20px 40px; }
+header.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; margin-bottom: 16px; }
+h1 { font-size: 22px; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+.sub { color: var(--muted); font-size: 13px; }
+.grid { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; min-width: 0; }
+.stack { display: grid; gap: 16px; min-width: 0; }
+h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
+fieldset { border: 0; padding: 0; margin: 0 0 14px; display: grid; gap: 8px; }
+fieldset:last-child { margin-bottom: 0; }
+legend { font-weight: 700; font-size: 13px; padding: 0; margin-bottom: 6px; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+label { display: grid; gap: 3px; font-size: 12px; color: var(--muted); }
+input, select { font: 14px var(--f-mono); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 5px; padding: 6px 8px; width: 100%; min-width: 0; }
+input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; margin-bottom: 14px; }
+.seg input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.seg label { color: var(--ink); font-size: 13px; font-weight: 500; text-align: center; padding: 8px 4px; line-height: 1.3; cursor: pointer; background: var(--bg); }
+.seg input:checked + span { color: var(--accent); }
+.seg label:has(input:checked) { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+.seg label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: -2px; }
+.hint { font-size: 12px; color: var(--muted); margin: 0; }
+.unit { font-size: 11px; color: var(--muted); }
+.btns { display: flex; flex-wrap: wrap; gap: 8px; }
+button { font: 600 13px var(--f-body); border-radius: 6px; padding: 8px 14px; cursor: pointer; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) button.primary { color: #1a0d05; } }
+:root[data-theme="dark"] button.primary { color: #1a0d05; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.kpi { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }
+.kpi b { display: block; font: 600 18px var(--f-mono); font-variant-numeric: tabular-nums; }
+.kpi span { font-size: 12px; color: var(--muted); }
+.msgs { display: grid; gap: 6px; }
+.msg { border-radius: 6px; padding: 8px 10px; font-size: 13px; }
+.msg.bad { background: var(--bad-soft); color: var(--bad); }
+.msg.warn { background: var(--warn-soft); color: var(--warn); }
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 16px; }
+@media (max-width: 1100px) { .two { grid-template-columns: minmax(0, 1fr); } }
+.schem svg { width: 100%; height: auto; max-height: 360px; display: block; }
+.schem .pipe { fill: var(--fill); stroke: var(--ink); stroke-width: 1.2; vector-effect: non-scaling-stroke; }
+.schem .trn { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.4; vector-effect: non-scaling-stroke; }
+.schem .cl { stroke: var(--steel); stroke-width: 0.8; stroke-dasharray: 8 3 2 3; fill: none; vector-effect: non-scaling-stroke; }
+.schem .dim { stroke: var(--steel); stroke-width: 0.9; fill: none; vector-effect: non-scaling-stroke; }
+.schem text { fill: var(--steel); font-family: var(--f-mono); }
+.paper-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+.paper-scroll svg { display: block; width: 100%; height: auto; }
+.paper-scroll { cursor: zoom-in; }
+.paper-scroll:hover { border-color: var(--accent); }
+.paper-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#zoomDlg { width: calc(100vw - 32px); height: calc(100vh - 32px); height: calc(100dvh - 32px); max-width: none; max-height: none; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); }
+#zoomDlg[open] { display: flex; flex-direction: column; }
+#zoomDlg::backdrop { background: rgba(10, 14, 12, 0.6); }
+.zbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+.zbar .btns button { min-width: 44px; }
+.zlevel { font: 600 13px var(--f-mono); color: var(--muted); min-width: 52px; text-align: center; }
+.zview { flex: 1; overflow: auto; background: #fff; cursor: grab; touch-action: none; }
+.zview.drag { cursor: grabbing; }
+.zview svg { display: block; height: auto; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+.tbl { overflow-x: auto; }
+th, td { padding: 5px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-size: 12px; color: var(--muted); font-weight: 500; }
+td { font-family: var(--f-mono); font-size: 13px; }
+td.l, th.l { text-align: left; font-family: var(--f-body); }
+.how { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 13px; }
+#print { display: none; }
+/* 휴대폰: 입력칸 한 줄, 표는 화면 폭에 맞춤, 입력 시 iOS 자동 확대 방지(16px) */
+@media (max-width: 520px) {
+  body { padding: 0 12px; }
+  .wrap { padding-block: 14px 28px; }
+  .card { padding: 12px; }
+  h1 { font-size: 20px; }
+  .row { grid-template-columns: minmax(0, 1fr); }
+  input, select { font-size: 16px; padding: 8px; }
+  .seg label { font-size: 12.5px; padding: 8px 2px; }
+  .btns button { flex: 1 1 calc(50% - 4px); }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kpi b { font-size: 16px; }
+  #tbl { table-layout: fixed; }
+  #tbl th, #tbl td { padding: 4px 3px; font-size: 11.5px; white-space: normal; word-break: keep-all; }
+  #tbl th:nth-child(1), #tbl td:nth-child(1) { width: 12%; }
+  #tbl td.l:last-child { font-size: 11px; }
+  #zoomDlg { width: 100vw; height: 100vh; height: 100dvh; border-radius: 0; border: 0; }
+  .zbar { padding: 8px 10px; }
+  .zbar b { display: none; }
+  .zbar .btns { width: 100%; flex-wrap: nowrap; }
+  .zbar .btns button { flex: 1 1 auto; min-width: 0; padding: 8px 6px; }
+}
+@media print {
+  body { background: #fff; color: #000; padding: 0; }
+  .wrap { display: none; }
+  #print { display: block; }
+  #zoomDlg { display: none !important; }
+  .page { break-after: page; overflow: hidden; position: relative; }
+  .page:last-child { break-after: auto; }
+  .ph { display: flex; justify-content: space-between; align-items: flex-end; gap: 4mm; height: 12mm; font: 9pt "Malgun Gothic", sans-serif; color: #000; border-bottom: 0.2mm solid #000; margin-bottom: 1.5mm; }
+  .ph .t { font-weight: 700; font-size: 10pt; }
+  .page svg { display: block; }
+}
+</style>
+</head>
+<body>
+<noscript>
+  <div style="margin:16px 0;padding:14px 16px;border:2px solid #c2410c;border-radius:8px;background:#fbe6da;color:#1c231f;font:15px/1.6 'Malgun Gothic','Apple SD Gothic Neo',sans-serif">
+    <b>이 화면에서는 계산이 되지 않습니다.</b><br>
+    휴대폰 파일 앱이나 메신저의 미리보기는 계산 기능(JavaScript)을 실행하지 않아 사이즈 목록과 전개도가 나오지 않습니다.<br>
+    휴대폰에서는 웹 버전을 여세요: <a href="https://claude.ai/artifact/SRpejKmTn5ewXszo4uCPFV" style="color:#c2410c;font-weight:700;word-break:break-all">https://claude.ai/artifact/SRpejKmTn5ewXszo4uCPFV</a><br>
+    PC에서는 이 파일을 크롬이나 엣지로 열면 인쇄와 PDF·Excel·DXF 저장까지 모두 됩니다.
+  </div>
+</noscript>
+<div class="wrap">
+  <header class="top">
+    <h1>트러니언 현도 계산기</h1>
+    <span class="sub">파이프 위 트러니언(원형 서포트)의 맞닿는 면을 전개해 1:1 템플릿으로 출력합니다. 단위 mm</span>
+  </header>
+
+  <div class="grid">
+    <form class="card" id="f" autocomplete="off">
+      <div class="seg" role="radiogroup" aria-label="주관 형태">
+        <label><input type="radio" name="mode" id="mStraight" value="straight" checked><span>직관 위</span></label>
+        <label><input type="radio" name="mode" id="mElbow" value="elbow"><span>더미 레그 (수직)</span></label>
+        <label><input type="radio" name="mode" id="mElbowH" value="elbowH"><span>수평 엘보 트러니언</span></label>
+      </div>
+
+      <fieldset>
+        <legend>주관 (붙일 대상 배관)</legend>
+        <div class="row">
+          <label>호칭경 <select id="mainNps"></select></label>
+          <label>OD <input id="mainOd" type="number" step="0.1" min="1"></label>
+        </div>
+        <div class="row" data-elbow>
+          <label>엘보 종류
+            <select id="rbType">
+              <option value="LR">LR (1.5D)</option>
+              <option value="SR">SR (1.0D)</option>
+              <option value="custom">직접 입력</option>
+            </select>
+          </label>
+          <label>곡률반경 (C-E) <input id="rb" type="number" step="0.1" min="1"></label>
+        </div>
+        <p class="hint" data-ev>90° 엘보 기준입니다. 트러니언은 수직 배관과 평행하게 엘보 등(배면)에 붙어 아래로 내려갑니다.</p>
+        <p class="hint" data-eh>수평면에서 꺾이는 90° 엘보입니다. 트러니언은 들어오는 배관과 평행하게 엘보 등(배면)에 붙어 수평으로 뻗습니다 (CF 타입).</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>트러니언</legend>
+        <div class="row">
+          <label>호칭경 <select id="trNps"></select></label>
+          <label>OD <input id="trOd" type="number" step="0.1" min="1"></label>
+        </div>
+        <div class="row">
+          <label>두께 <input id="trT" type="number" step="0.01" min="0"></label>
+          <label>윤곽 기준
+            <select id="contact">
+              <option value="id">ID (셋온, 권장)</option>
+              <option value="mean">두께 중심</option>
+              <option value="od">OD</option>
+            </select>
+          </label>
+        </div>
+        <p class="hint">ID 기준: 트러니언 안쪽 모서리가 주관에 닿고, 바깥 모서리는 개선(베벨) 가공합니다. 템플릿은 트러니언 OD 둘레로 전개합니다.</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>배치</legend>
+        <div class="row" data-straight>
+          <label>교차각 α (°) <input id="angle" type="number" step="0.5" min="15" max="90"></label>
+          <label>편심 e <input id="offE" type="number" step="0.5"></label>
+        </div>
+        <label data-eh>입면 정렬 (높이)
+          <select id="alignH">
+            <option value="bottom">BOP 맞춤 (바닥면 일치)</option>
+            <option value="center">센터라인 (배관 중심과 일치)</option>
+            <option value="top">TOP 맞춤 (윗면 일치)</option>
+          </select>
+        </label>
+        <label data-elbow><span data-ev>트러니언 정렬</span><span data-eh>평면 정렬</span>
+          <select id="align">
+            <option value="center">센터라인 (축 일치)</option>
+            <option value="inside">인사이드 라인 (안쪽 면 맞춤)</option>
+            <option value="outside">아웃사이드 라인 (바깥 면 맞춤)</option>
+          </select>
+        </label>
+        <p class="hint" data-straight>α = 주관 축과 트러니언 축 사이 각도 (직교 = 90). e = 두 축 사이 거리 (동심 = 0).</p>
+        <p class="hint" data-eh>BOP 맞춤: 트러니언 바닥을 배관 BOP와 같은 높이로 내려 같은 철골 위에 얹습니다. 평면 정렬은 들어오는 배관 축 기준이며 보통 센터라인입니다.</p>
+        <p class="hint" data-ev>수직 배관을 기준으로 맞춥니다. 인사이드는 엘보 안쪽(수평 배관 쪽) 면, 아웃사이드는 엘보 등(배면) 쪽 면을 트러니언 OD 면과 일직선으로 맞춥니다.</p>
+        <div class="row">
+          <label><span data-straight>H: 주관 중심 → 트러니언 끝</span><span data-ev>H: 수평 배관 중심 → 트러니언 끝</span><span data-eh>H: 꺾인 배관 중심 → 트러니언 끝 (L+M)</span>
+            <input id="height" type="number" step="1" min="0"></label>
+          <label>기준선 여유 G <input id="gap" type="number" step="1" min="5"></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>출력</legend>
+        <div class="row">
+          <label>등분 수
+            <select id="divs">
+              <option>8</option><option>12</option><option selected>16</option><option>24</option><option>32</option>
+            </select>
+          </label>
+          <label>용지
+            <select id="paper">
+              <option value="A4L">A4 가로</option>
+              <option value="A4P">A4 세로</option>
+              <option value="A3L">A3 가로</option>
+            </select>
+          </label>
+        </div>
+        <div class="btns">
+          <button type="button" class="primary" id="btnPrint">1:1 인쇄</button>
+          <button type="button" id="btnDxf">DXF 저장</button>
+          <button type="button" id="btnPdf">PDF 저장</button>
+          <button type="button" id="btnXlsx">Excel 저장</button>
+          <button type="button" id="btnSvg">SVG 저장</button>
+          <button type="button" id="btnReset">초기화</button>
+        </div>
+        <p class="hint" id="pageInfo"></p>
+      </fieldset>
+    </form>
+
+    <div class="stack">
+      <div class="msgs" id="msgs" aria-live="polite"></div>
+      <div class="card">
+        <div class="kpis" id="kpis"></div>
+      </div>
+      <div class="two">
+        <div class="card schem">
+          <h2>개략도</h2>
+          <div id="schem"></div>
+        </div>
+        <div class="card">
+          <h2>전개도 미리보기</h2>
+          <div class="paper-scroll" id="preview" role="button" tabindex="0" title="클릭하면 크게 봅니다" aria-label="전개도 크게 보기"></div>
+          <p class="hint" style="margin-top:8px">미리보기를 누르면 크게 볼 수 있습니다. 굵은 선을 따라 오려 트러니언 OD에 감습니다. 오른쪽 회색 부분은 겹침(풀칠) 여유입니다.</p>
+        </div>
+      </div>
+      <div class="card">
+        <h2>등분 치수표</h2>
+        <div class="tbl"><table id="tbl"></table></div>
+      </div>
+      <div class="card">
+        <h2>사용 순서</h2>
+        <ol class="how">
+          <li>인쇄 대화상자에서 배율을 <b>100% (실제 크기)</b>로 두고, 출력물의 100 mm 눈금자를 자로 재서 확인합니다.</li>
+          <li>여러 장이면 회색 겹침 띠를 맞춰 이어 붙이고 굵은 곡선을 따라 오립니다.</li>
+          <li>트러니언에 직각 기준선을 긋고, 템플릿 기준선을 맞춰 감은 뒤 곡선을 마킹합니다.</li>
+          <li>0° 선을 표시된 방향(개략도 참고)에 맞춥니다. 템플릿 없이 마킹할 때는 치수표의 세로 치수를 등분선마다 기준선에서 재면 됩니다.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="print"></div>
+<dialog id="zoomDlg" aria-label="전개도 확대 보기">
+  <div class="zbar">
+    <b>전개도 확대</b>
+    <div class="btns">
+      <button type="button" id="zOut" aria-label="축소">−</button>
+      <span class="zlevel" id="zLevel">100%</span>
+      <button type="button" id="zIn" aria-label="확대">+</button>
+      <button type="button" id="zFit">화면 맞춤</button>
+      <button type="button" class="primary" id="zClose">닫기</button>
+    </div>
+  </div>
+  <div class="zview" id="zview"></div>
+</dialog>
+
+<script>
+"use strict";
+// [호칭, OD, STD 두께, 호칭(inch)]
+const NPS = [
+  ['1/2"',21.3,2.77,0.5],['3/4"',26.7,2.87,0.75],['1"',33.4,3.38,1],['1-1/4"',42.2,3.56,1.25],
+  ['1-1/2"',48.3,3.68,1.5],['2"',60.3,3.91,2],['2-1/2"',73.0,5.16,2.5],['3"',88.9,5.49,3],
+  ['3-1/2"',101.6,5.74,3.5],['4"',114.3,6.02,4],['5"',141.3,6.55,5],['6"',168.3,7.11,6],
+  ['8"',219.1,8.18,8],['10"',273.1,9.27,10],['12"',323.9,9.53,12],['14"',355.6,9.53,14],
+  ['16"',406.4,9.53,16],['18"',457.2,9.53,18],['20"',508.0,9.53,20],['22"',558.8,9.53,22],['24"',609.6,9.53,24]
+];
+const PAPERS = { A4L: [297, 210, "A4 가로"], A4P: [210, 297, "A4 세로"], A3L: [420, 297, "A3 가로"] };
+const DEF = { mode: "straight", mainNps: "6\"", mainOd: 168.3, rbType: "LR", rb: 228.6, trNps: "4\"", trOd: 114.3, trT: 6.02,
+  contact: "id", angle: 90, offE: 0, align: "center", alignH: "bottom", height: 300, gap: 30, divs: "16", paper: "A4L" };
+const ALIGN = { center: "센터라인", inside: "인사이드 라인", outside: "아웃사이드 라인" };
+const ALIGN_H = { bottom: [-1, "BOP 맞춤"], center: [0, "센터라인"], top: [1, "TOP 맞춤"] };
+const $ = id => document.getElementById(id);
+const FIELDS = ["mainNps","mainOd","rbType","rb","trNps","trOd","trT","contact","angle","offE","align","alignH","height","gap","divs","paper"];
+const f1 = v => (Math.round(v * 10) / 10).toFixed(1);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function fillNps(sel) {
+  sel.innerHTML = NPS.map(n => `<option value='${n[0]}'>${n[0]}</option>`).join("") + `<option value="custom">직접 입력</option>`;
+}
+fillNps($("mainNps")); fillNps($("trNps"));
+
+function npsOf(name) { return NPS.find(n => n[0] === name); }
+function elbowRb(type, nps) {
+  if (!nps) return null;
+  if (type === "LR") return nps[3] < 1 ? 38.1 : 1.5 * nps[3] * 25.4;
+  if (type === "SR") return 1.0 * Math.max(nps[3], 1) * 25.4;
+  return null;
+}
+
+// ---------- 입력 ----------
+function readParams() {
+  const ui = document.querySelector('input[name="mode"]:checked').value;
+  const mode = ui === "straight" ? "straight" : "elbow";
+  // 수평 엘보 트러니언(CF 타입): 엘보 평면 밖(z, +위)으로 내려 BOP/TOP을 맞춤
+  const horiz = ui === "elbowH";
+  const n = id => parseFloat($(id).value);
+  const p = { mode, horiz, mainOd: n("mainOd"), rb: n("rb"), trOd: n("trOd"), trT: n("trT"), contact: $("contact").value,
+    angle: n("angle"), e: mode === "straight" ? n("offE") : 0, align: $("align").value,
+    H: n("height"), G: n("gap"), divs: parseInt($("divs").value, 10), paper: $("paper").value };
+  p.R = p.mainOd / 2;
+  p.rw = p.trOd / 2;
+  // 정렬은 트러니언 OD 면을 주관 OD 면과 일직선으로 맞춤
+  const side = Math.max(0, p.R - p.rw);
+  p.a = p.align === "outside" ? side : p.align === "inside" ? -side : 0;
+  if (horiz) p.e = ALIGN_H[$("alignH").value][0] * side;
+  p.rc = p.contact === "id" ? (p.trOd - 2 * p.trT) / 2 : p.contact === "mean" ? (p.trOd - p.trT) / 2 : p.trOd / 2;
+  return p;
+}
+
+// ---------- 형상 계산 ----------
+// 직관: 주관 축 = x, 트러니언 축 방향 d=(cosα,0,sinα), 축은 (0,e,0)을 지남.
+//       θ=0 생성선은 주관 축방향(둔각 쪽), θ=90°는 +e 쪽 측면.
+// 엘보: 곡률 중심 = 원점, 중심선 반경 Rb (xy 평면), 수직 다리 축 = x=Rb 직선.
+//       트러니언 축은 y 방향, x=Rb+a, z=e. θ=0 생성선은 엘보 바깥(배면) 쪽.
+// 반환값 t = 트러니언 축 위 거리 (직관: 주관 중심 높이 기준 / 엘보: 곡률 중심 기준)
+function hitT(p, th) {
+  const c = Math.cos(th), s = Math.sin(th);
+  if (p.mode === "straight") {
+    const al = p.angle * Math.PI / 180;
+    const y = p.e + p.rc * s;
+    if (Math.abs(y) > p.R) return NaN;
+    return (Math.sqrt(p.R * p.R - y * y) - p.rc * c * Math.cos(al)) / Math.sin(al);
+  }
+  const x = p.rb + p.a + p.rc * c, z = p.e + p.rc * s;
+  if (Math.abs(z) > p.R) return NaN;
+  const rho = p.rb + Math.sqrt(p.R * p.R - z * z);
+  if (rho <= x) return NaN;
+  return Math.sqrt(rho * rho - x * x);
+}
+
+function compute(p) {
+  const errors = [], warns = [];
+  const pos = ["mainOd","trOd"].every(k => p[k] > 0);
+  if (!pos) errors.push("주관 OD와 트러니언 OD를 입력하세요.");
+  if (!(p.trT >= 0) || p.trT * 2 >= p.trOd) errors.push("트러니언 두께가 올바르지 않습니다.");
+  if (p.mode === "straight" && !(p.angle >= 15 && p.angle <= 90)) errors.push("교차각 α는 15°~90° 사이로 입력하세요.");
+  if (p.mode === "elbow" && !(p.rb > p.R)) errors.push("엘보 곡률반경은 주관 반경(OD/2)보다 커야 합니다.");
+  if ([p.e, p.H, p.G].some(v => !Number.isFinite(v)) || (p.mode === "elbow" && !Number.isFinite(p.a))) errors.push("빈 칸을 채워 주세요.");
+  if (errors.length) return { errors, warns };
+
+  const off = p.mode === "straight" ? Math.abs(p.e) : Math.hypot(p.a, p.e);
+  if (off + p.rc > p.R + 1e-9) {
+    errors.push(p.mode === "straight"
+      ? `트러니언이 주관 밖으로 벗어납니다. 편심 + 트러니언 반경(${f1(off + p.rc)})이 주관 반경(${f1(p.R)})보다 큽니다. 편심을 줄이거나 더 작은 트러니언을 쓰세요.`
+      : `이 정렬 조합에서는 트러니언이 엘보 면 밖으로 벗어납니다. 평면 정렬이나 입면 정렬 중 하나를 센터라인으로 바꾸세요.`);
+    return { errors, warns };
+  }
+  if (p.trOd > p.mainOd) warns.push("트러니언 OD가 주관 OD보다 큽니다. 맞는지 확인하세요.");
+  if (off + p.rw > p.R + 1e-6 && off + p.rc <= p.R) warns.push("트러니언 바깥 모서리 일부가 주관 측면을 벗어납니다. 해당 부분은 용접 시 틈이 생길 수 있습니다.");
+
+  const N = 720, fine = [];
+  for (let i = 0; i <= N; i++) { const th = 2 * Math.PI * i / N; fine.push({ th, t: hitT(p, th) }); }
+  if (fine.some(q => !Number.isFinite(q.t))) { errors.push("교차선을 계산할 수 없는 배치입니다. 입력값을 확인하세요."); return { errors, warns }; }
+
+  if (p.mode === "elbow") {
+    const over = fine.some(q => { const x = p.rb + p.a + p.rc * Math.cos(q.th); return Math.atan2(q.t, x) > Math.PI / 2; });
+    if (over) warns.push("교차선 일부가 엘보 90° 구간을 넘어 수평 배관 쪽에 걸칩니다. 결과가 정확하지 않을 수 있습니다.");
+  }
+
+  const tmax = Math.max(...fine.map(q => q.t)), tmin = Math.min(...fine.map(q => q.t));
+  const Href = p.mode === "straight" ? p.H : p.rb + p.H;
+  const ord = t => p.G + (tmax - t);
+  const W = 2 * Math.PI * p.rw;
+  const divs = [];
+  for (let k = 0; k <= p.divs; k++) {
+    const th = 2 * Math.PI * k / p.divs, t = hitT(p, th);
+    divs.push({ k, deg: 360 * k / p.divs, x: p.rw * th, ord: ord(t), L: Href - t });
+  }
+  const Lmin = Href - tmax, Lmax = Href - tmin;
+  if (p.H > 0 && Lmin - p.G < 0) warns.push("기준선이 트러니언 끝면보다 바깥에 놓입니다. H를 늘리거나 기준선 여유 G를 줄이세요.");
+  if (p.H > 0 && Lmin <= 0) errors.push("H가 너무 짧아 트러니언이 주관과 겹칩니다. H를 늘리세요.");
+  return { errors, warns, fine, divs, tmax, tmin, depth: tmax - tmin, W, ord, Lmin, Lmax, Href };
+}
+
+function quadName(p, deg) {
+  if (p.mode === "straight") {
+    const ax = p.angle >= 89.99;
+    return { 0: ax ? "주관 축방향 A" : "둔각 쪽", 90: p.e ? "측면 (+e)" : "측면", 180: ax ? "주관 축방향 B" : "예각 쪽", 270: p.e ? "측면 (−e)" : "측면" }[deg];
+  }
+  if (p.horiz) return { 0: "엘보 배면 쪽", 90: "윗면 (TOP)", 180: "꺾인 배관 쪽", 270: "바닥 (BOP)" }[deg];
+  return { 0: "엘보 바깥(배면)", 90: "측면", 180: "수평 배관 쪽", 270: "측면" }[deg];
+}
+
+// ---------- 템플릿 (mm 좌표) ----------
+const TPL = { x0: 8, top: 16, tab: 15, bottom: 12 };
+function templateGeom(p, r) {
+  const Wt = TPL.x0 + r.W + TPL.tab + 8;
+  const Ht = TPL.top + p.G + r.depth + TPL.bottom;
+  return { Wt, Ht };
+}
+function curvePts(p, r, extra) {
+  const pts = [], N = 720, endTh = 2 * Math.PI + extra / p.rw;
+  for (let i = 0; i <= N; i++) {
+    const th = endTh * i / N;
+    pts.push([TPL.x0 + p.rw * th, TPL.top + r.ord(hitT(p, th % (2 * Math.PI)))]);
+  }
+  return pts;
+}
+function templateSvgInner(p, r) {
+  const { x0, top, tab } = TPL, W = r.W, yTop = top - 9;
+  const curve = curvePts(p, r, tab);
+  const path = curve.map((q, i) => (i ? "L" : "M") + q[0].toFixed(2) + " " + q[1].toFixed(2)).join("");
+  const outline = `M${x0} ${yTop}H${(x0 + W + tab).toFixed(2)}V${curve[curve.length - 1][1].toFixed(2)}` +
+    curve.slice().reverse().map(q => "L" + q[0].toFixed(2) + " " + q[1].toFixed(2)).join("") + "Z";
+  const tabCurve = curve.filter(q => q[0] >= x0 + W);
+  const tabPath = `M${(x0 + W).toFixed(2)} ${yTop}H${(x0 + W + tab).toFixed(2)}` +
+    tabCurve.slice().reverse().map(q => "L" + q[0].toFixed(2) + " " + q[1].toFixed(2)).join("") + "Z";
+  let s = `<path d="${outline}" fill="#fff" stroke="none"/>`;
+  s += `<path d="${tabPath}" fill="#d9d9d9" stroke="none"/>`;
+  s += `<text x="${(x0 + W + tab / 2).toFixed(2)}" y="${(top + 6).toFixed(2)}" font-size="2.6" text-anchor="middle" fill="#444">겹침</text>`;
+  // 등분선
+  r.divs.forEach(d => {
+    const x = x0 + d.x, y = top + d.ord;
+    const major = d.deg % 90 === 0;
+    s += `<line x1="${x.toFixed(2)}" y1="${yTop}" x2="${x.toFixed(2)}" y2="${y.toFixed(2)}" stroke="#000" stroke-width="${major ? 0.3 : 0.15}" ${major ? "" : 'stroke-dasharray="1.2 0.8"'}/>`;
+    s += `<text x="${(x + 0.8).toFixed(2)}" y="${(yTop + 3).toFixed(2)}" font-size="2.6" font-weight="700" fill="#000">${d.k === p.divs ? 0 : d.k}</text>`;
+    if (d.k < p.divs) {
+      const ty = top + Math.min(d.ord - 2, Math.max(8, d.ord / 2 + 3));
+      s += `<text transform="translate(${(x - 0.8).toFixed(2)} ${ty.toFixed(2)}) rotate(-90)" font-size="2.4" fill="#000">${f1(d.ord)}</text>`;
+    }
+    if (major && d.k < p.divs) s += `<text x="${(x + 0.8).toFixed(2)}" y="${(top + 4.5).toFixed(2)}" font-size="2.4" fill="#000">${d.deg}° ${esc(quadName(p, d.deg))}</text>`;
+  });
+  // 기준선, 좌우 경계, 곡선
+  s += `<line x1="${x0}" y1="${top}" x2="${(x0 + W + tab).toFixed(2)}" y2="${top}" stroke="#000" stroke-width="0.35"/>`;
+  if (p.G >= 12) s += `<text x="${x0 + 0.8}" y="${top + 7.6}" font-size="2.2" fill="#000">↑ 기준선</text>`;
+  // 등분 간격 치수 (기준선 바로 위 줄)
+  const sp = W / p.divs, dy = top - 1.2;
+  const dim = (xa, xb, label) => {
+    s += `<line x1="${(xa + 0.4).toFixed(2)}" y1="${dy}" x2="${(xb - 0.4).toFixed(2)}" y2="${dy}" stroke="#000" stroke-width="0.12"/>` +
+      `<path d="M${(xa + 0.4).toFixed(2)} ${dy}l1.2 -0.45v0.9zM${(xb - 0.4).toFixed(2)} ${dy}l-1.2 -0.45v0.9z" fill="#000"/>` +
+      `<text x="${((xa + xb) / 2).toFixed(2)}" y="${dy - 0.7}" font-size="2.2" text-anchor="middle" fill="#000">${label}</text>`;
+  };
+  if (sp >= 7) for (let k = 0; k < p.divs; k++) dim(x0 + k * sp, x0 + (k + 1) * sp, f1(sp));
+  else { dim(x0, x0 + sp, ""); s += `<text x="${(x0 + sp + 1).toFixed(2)}" y="${dy + 0.8}" font-size="2.2" fill="#000">등분 간격 ${f1(sp)}</text>`; }
+  s += `<line x1="${x0}" y1="${yTop}" x2="${x0}" y2="${curve[0][1].toFixed(2)}" stroke="#000" stroke-width="0.4"/>`;
+  s += `<line x1="${(x0 + W + tab).toFixed(2)}" y1="${yTop}" x2="${(x0 + W + tab).toFixed(2)}" y2="${curve[curve.length - 1][1].toFixed(2)}" stroke="#000" stroke-width="0.4"/>`;
+  s += `<line x1="${x0}" y1="${yTop}" x2="${(x0 + W + tab).toFixed(2)}" y2="${yTop}" stroke="#000" stroke-width="0.4"/>`;
+  s += `<path d="${path}" fill="none" stroke="#000" stroke-width="0.6"/>`;
+  return s;
+}
+function templateSvg(p, r, forFile) {
+  const g = templateGeom(p, r);
+  const size = forFile ? `width="${g.Wt.toFixed(1)}mm" height="${g.Ht.toFixed(1)}mm"` : "";
+  return `<svg xmlns="http://www.w3.org/2000/svg" ${size} viewBox="0 0 ${g.Wt.toFixed(2)} ${g.Ht.toFixed(2)}" font-family="Malgun Gothic, sans-serif">` +
+    `<rect width="100%" height="100%" fill="#fafafa"/>` + templateSvgInner(p, r) + `</svg>`;
+}
+
+// ---------- 개략도 ----------
+function schemSvg(p, r) {
+  const els = [], pts = [];
+  const add = (x, y) => pts.push([x, y]);
+  if (p.mode === "straight") {
+    const al = p.angle * Math.PI / 180, dx = Math.cos(al), dz = Math.sin(al);
+    const ux = -Math.sin(al), uz = Math.cos(al);
+    const P = (t, k) => [t * dx + k * ux, -(t * dz + k * uz)];
+    const span = Math.max(2.2 * p.R, Math.abs(p.H * dx) + p.rw + p.R);
+    const curve = [];
+    for (let i = 0; i <= 90; i++) { const th = Math.PI * i / 90; curve.push(P(hitT(p, th), p.rc * Math.cos(th))); }
+    const e0 = P(p.H, p.rc), e1 = P(p.H, -p.rc);
+    const poly = [e0, ...curve, e1];
+    poly.forEach(q => add(...q));
+    els.push(`<polygon class="trn" points="${poly.map(q => q.map(v => v.toFixed(1)).join(",")).join(" ")}"/>`);
+    els.push(`<rect class="pipe" x="${-span}" y="${-p.R}" width="${2 * span}" height="${2 * p.R}"/>`);
+    add(-span, -p.R); add(span, p.R);
+    els.push(`<line class="cl" x1="${-span - 10}" y1="0" x2="${span + 10}" y2="0"/>`);
+    const c = P(p.H + 15, 0);
+    els.push(`<line class="cl" x1="0" y1="0" x2="${c[0].toFixed(1)}" y2="${c[1].toFixed(1)}"/>`);
+    add(...c);
+    const lbl = P(p.H * 0.75, -(p.rw + 0.12 * p.R));
+    els.push(`<text x="${lbl[0].toFixed(1)}" y="${lbl[1].toFixed(1)}" font-size="{FS}">H ${f1(p.H)}</text>`);
+    const a0 = P(-p.rc * 0, 0);
+    if (p.angle < 89.99) els.push(`<text x="${(0.6 * p.R).toFixed(1)}" y="${(-1.15 * p.R).toFixed(1)}" font-size="{FS}">α ${p.angle}°</text>`);
+    const z0 = P(hitT(p, 0) + 0.25 * (p.H - hitT(p, 0)), p.rw + 0.05 * p.R);
+    els.push(`<text x="${z0[0].toFixed(1)}" y="${z0[1].toFixed(1)}" font-size="{FS}" text-anchor="end">0° →</text>`);
+    void a0;
+  } else {
+    const Rb = p.rb, R = p.R, Lg = Math.max(0.8 * Rb, 1.6 * R);
+    const curve = [];
+    for (let i = 0; i <= 90; i++) { const th = Math.PI * i / 90; curve.push([Rb + p.a + p.rc * Math.cos(th), hitT(p, th)]); }
+    const yEnd = Rb + p.H;
+    const poly = [[Rb + p.a + p.rc, yEnd], ...curve, [Rb + p.a - p.rc, yEnd]];
+    poly.forEach(q => add(...q));
+    // 수평 더미는 90° 엘보가 y=x 선에 대칭이므로 수직 더미 그림을 대칭 이동해서 그림
+    const T = (x, y) => p.horiz ? [y, x] : [x, y];
+    const geo = [];
+    geo.push(`<polygon class="trn" points="${poly.map(q => q.map(v => v.toFixed(1)).join(",")).join(" ")}"/>`);
+    const o = Rb + R, i = Rb - R;
+    geo.push(`<path class="pipe" d="M${o} 0A${o} ${o} 0 0 1 0 ${o}L${-Lg} ${o}L${-Lg} ${i}L0 ${i}A${i} ${i} 0 0 0 ${i} 0L${i} ${-Lg}L${o} ${-Lg}Z"/>`);
+    add(-Lg, -Lg); add(o, o);
+    geo.push(`<path class="cl" d="M${Rb} ${-Lg - 10}L${Rb} 0A${Rb} ${Rb} 0 0 1 0 ${Rb}L${-Lg - 10} ${Rb}"/>`);
+    geo.push(`<line class="cl" x1="${Rb + p.a}" y1="${Rb * 0.4}" x2="${Rb + p.a}" y2="${yEnd + 15}"/>`);
+    const dx = Rb + p.a + p.rw + 0.35 * R;
+    geo.push(`<line class="dim" x1="${dx}" y1="${Rb}" x2="${dx}" y2="${yEnd}"/>`);
+    geo.push(`<line class="dim" x1="${dx - 0.15 * R}" y1="${Rb}" x2="${dx + 0.15 * R}" y2="${Rb}"/>`);
+    geo.push(`<line class="dim" x1="${dx - 0.15 * R}" y1="${yEnd}" x2="${dx + 0.15 * R}" y2="${yEnd}"/>`);
+    geo.push(`<line class="cl" x1="0" y1="${Rb}" x2="${dx + 0.2 * R}" y2="${Rb}"/>`);
+    els.push(p.horiz ? `<g transform="matrix(0 1 1 0 0 0)">${geo.join("")}</g>` : geo.join(""));
+    const hl = T(dx + 0.2 * R, (Rb + yEnd) / 2), zl = T(Rb + p.a + p.rw + 0.05 * R, yEnd - 0.2 * R);
+    els.push(`<text x="${hl[0]}" y="${p.horiz ? hl[1] + 0.3 * R : hl[1]}" font-size="{FS}" ${p.horiz ? 'text-anchor="middle"' : ""}>H ${f1(p.H)}</text>`);
+    els.push(p.horiz
+      ? `<text x="${zl[0] - 0.1 * R}" y="${Rb + p.a + p.rw - 0.15 * R}" font-size="{FS}" text-anchor="end">0° (배면) ↓</text>`
+      : `<text x="${zl[0]}" y="${zl[1]}" font-size="{FS}">← 0°</text>`);
+    add(dx + 1.6 * R, yEnd + 15);
+    if (p.horiz) pts.forEach(q => q.reverse());
+  }
+  const svg = fitSvg(els, pts, "배치 개략도");
+  if (!p.horiz) return svg;
+  return `<p class="hint">평면도 (위에서 본 모습)</p>${svg}<p class="hint" style="margin-top:10px">입면도 (옆에서 본 모습)</p>${elevSvg(p)}`;
+}
+function fitSvg(els, pts, label, fsScale) {
+  const xs = pts.map(q => q[0]), ys = pts.map(q => q[1]);
+  const pad = 0.12 * Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
+  const vb = [Math.min(...xs) - pad, Math.min(...ys) - pad, Math.max(...xs) - Math.min(...xs) + 2 * pad, Math.max(...ys) - Math.min(...ys) + 2 * pad];
+  const fs = ((fsScale || 0.045) * Math.max(vb[2], vb[3])).toFixed(1);
+  return `<svg viewBox="${vb.map(v => v.toFixed(1)).join(" ")}" role="img" aria-label="${label}">${els.join("").split("{FS}").join(fs)}</svg>`;
+}
+// 수평 엘보 트러니언 입면: X = 트러니언 축 방향, 화면 Y = 아래(+) (z는 위가 +)
+function elevSvg(p) {
+  const Rb = p.rb, R = p.R, Lg = Math.max(0.8 * Rb, 1.6 * R), xEnd = Rb + p.H;
+  const els = [], pts = [[-Lg, -R], [xEnd + 15, R + 0.6 * R]];
+  els.push(`<path class="pipe" d="M${-Lg} ${-R}H${Rb}A${R} ${R} 0 0 1 ${Rb} ${R}H${-Lg}Z"/>`);
+  els.push(`<circle class="pipe" cx="${Rb}" cy="0" r="${R}"/>`);
+  const curve = [];
+  for (let i = 0; i <= 90; i++) { const th = Math.PI / 2 - Math.PI * i / 90; curve.push([hitT(p, th), -(p.e + p.rc * Math.sin(th))]); }
+  const poly = [[xEnd, -(p.e + p.rc)], ...curve, [xEnd, -(p.e - p.rc)]];
+  els.push(`<polygon class="trn" points="${poly.map(q => q.map(v => v.toFixed(1)).join(",")).join(" ")}"/>`);
+  els.push(`<line class="cl" x1="${-Lg - 10}" y1="0" x2="${Rb + R + 10}" y2="0"/>`);
+  els.push(`<line class="cl" x1="${Rb - R}" y1="${-p.e}" x2="${xEnd + 15}" y2="${-p.e}"/>`);
+  els.push(`<line class="dim" x1="${-Lg}" y1="${R}" x2="${xEnd + 15}" y2="${R}" stroke-dasharray="4 3"/>`);
+  els.push(`<text x="${-Lg}" y="${-0.15 * R}" font-size="{FS}">℄PIPE</text>`);
+  els.push(`<text x="${xEnd + 15}" y="${-p.e - 0.15 * R}" font-size="{FS}" text-anchor="end">℄TRUNNION</text>`);
+  els.push(`<text x="${xEnd + 15}" y="${R + 0.45 * R}" font-size="{FS}" text-anchor="end">BOP</text>`);
+  return fitSvg(els, pts, "입면 개략도", 0.035);
+}
+
+// ---------- 인쇄 페이지 ----------
+function pagePlan(p, r) {
+  const [pw, ph] = PAPERS[p.paper], m = 8, head = 13.5, ov = 10;
+  const uw = pw - 2 * m, uh = ph - 2 * m - head;
+  const g = templateGeom(p, r);
+  const cols = g.Wt <= uw ? 1 : Math.ceil((g.Wt - ov) / (uw - ov));
+  const rows = g.Ht <= uh ? 1 : Math.ceil((g.Ht - ov) / (uh - ov));
+  return { pw, ph, m, head, ov, uw, uh, cols, rows, g };
+}
+function buildPrint(p, r) {
+  const pl = pagePlan(p, r);
+  $("pagestyle").textContent = `@page { size: ${pl.pw}mm ${pl.ph}mm; margin: ${pl.m}mm; }`;
+  const inner = templateSvgInner(p, r);
+  const total = pl.cols * pl.rows;
+  const desc = p.mode === "straight"
+    ? `직관 | 주관 OD ${f1(p.mainOd)} | 트러니언 OD ${f1(p.trOd)} t${p.trT} (${$("contact").selectedOptions[0].text}) | α ${p.angle}° | e ${p.e}`
+    : `${p.horiz ? "수평 엘보 트러니언" : "더미 레그(수직)"} | 주관 OD ${f1(p.mainOd)} R${f1(p.rb)} | 트러니언 OD ${f1(p.trOd)} t${p.trT} (${$("contact").selectedOptions[0].text}) | ${p.horiz ? `평면 ${ALIGN[p.align]} / 입면 ${ALIGN_H[$("alignH").value][1]}` : `${ALIGN[p.align]} 정렬`}`;
+  // 각 장은 머리글·100mm 눈금·템플릿 조각을 담은 하나의 SVG (인쇄와 PDF가 같은 것을 씀)
+  const hh = pl.ph - 2 * pl.m - 0.5, bx = pl.uw - 102;
+  const bar = `<rect x="${bx}" y="1.5" width="100" height="2.5" fill="none" stroke="#000" stroke-width="0.25"/>` +
+    [0, 2, 4, 6, 8].map(i => `<rect x="${bx + i * 10}" y="1.5" width="10" height="2.5" fill="#000"/>`).join("") +
+    `<text x="${bx + 50}" y="7.8" font-size="2.6" text-anchor="middle">이 막대가 정확히 100 mm인지 확인</text>`;
+  const pages = [];
+  let n = 0;
+  for (let ry = 0; ry < pl.rows; ry++) for (let cx = 0; cx < pl.cols; cx++) {
+    n++;
+    const vx = cx * (pl.uw - pl.ov), vy = ry * (pl.uh - pl.ov);
+    let marks = "";
+    if (cx < pl.cols - 1) marks += `<rect x="${vx + pl.uw - pl.ov}" y="${vy}" width="${pl.ov}" height="${pl.uh}" fill="#000" fill-opacity="0.08"/><text transform="translate(${vx + pl.uw - pl.ov / 2 + 1} ${vy + pl.uh / 2}) rotate(-90)" font-size="2.6" text-anchor="middle">겹침 → ${n + 1}번 장</text>`;
+    if (ry < pl.rows - 1) marks += `<rect x="${vx}" y="${vy + pl.uh - pl.ov}" width="${pl.uw}" height="${pl.ov}" fill="#000" fill-opacity="0.08"/><text x="${vx + pl.uw / 2}" y="${vy + pl.uh - pl.ov / 2 + 1}" font-size="2.6" text-anchor="middle">겹침 ↓ ${n + pl.cols}번 장</text>`;
+    pages.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${pl.uw}mm" height="${hh}mm" viewBox="0 0 ${pl.uw} ${hh}" font-family="Malgun Gothic, 맑은 고딕, sans-serif">` +
+      `<rect width="${pl.uw}" height="${hh}" fill="#fff"/>` +
+      `<text x="0" y="4.5" font-size="3.5" font-weight="700">트러니언 현도 ${n}/${total} (${ry + 1}행 ${cx + 1}열)</text>` +
+      `<text x="0" y="9.5" font-size="2.6">${esc(desc)}</text>${bar}` +
+      `<line x1="0" y1="${pl.head - 1.2}" x2="${pl.uw}" y2="${pl.head - 1.2}" stroke="#000" stroke-width="0.2"/>` +
+      `<svg x="0" y="${pl.head}" width="${pl.uw}" height="${pl.uh}" viewBox="${vx} ${vy} ${pl.uw} ${pl.uh}">${inner}${marks}</svg></svg>`);
+  }
+  $("print").innerHTML = pages.map(s => `<div class="page" style="width:${pl.uw}mm;height:${hh}mm">${s}</div>`).join("");
+  pl.pages = pages; pl.hh = hh; pl.desc = desc;
+  return pl;
+}
+
+// ---------- PDF (각 장을 고해상도 이미지로 1:1 배치, 한글 깨짐 없음) ----------
+const LIBS = {
+  pdf: ["https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js", () => window.jspdf],
+  xlsx: ["https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", () => window.XLSX],
+};
+function loadLib(name) {
+  const [src, get] = LIBS[name];
+  if (get()) return Promise.resolve(get());
+  return new Promise((ok, fail) => {
+    const s = document.createElement("script");
+    s.src = src; s.onload = () => get() ? ok(get()) : fail(new Error("load")); s.onerror = () => fail(new Error("load"));
+    document.head.appendChild(s);
+  });
+}
+function svgToPng(svg, wmm, hmm, dpi) {
+  const k = dpi / 25.4, w = Math.round(wmm * k), h = Math.round(hmm * k);
+  return new Promise((ok, fail) => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement("canvas"); c.width = w; c.height = h;
+      const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, w, h); g.drawImage(img, 0, 0, w, h);
+      ok(c.toDataURL("image/png"));
+    };
+    img.onerror = () => fail(new Error("render"));
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  });
+}
+async function savePdf() {
+  const { p, r } = state, pl = buildPrint(p, r);
+  const btn = $("btnPdf"), label = btn.textContent;
+  btn.disabled = true; btn.textContent = "PDF 만드는 중…";
+  try {
+    const { jsPDF } = await loadLib("pdf");
+    const doc = new jsPDF({ unit: "mm", format: [pl.pw, pl.ph], orientation: pl.pw > pl.ph ? "landscape" : "portrait", compress: true });
+    for (let i = 0; i < pl.pages.length; i++) {
+      if (i) doc.addPage([pl.pw, pl.ph], pl.pw > pl.ph ? "landscape" : "portrait");
+      const png = await svgToPng(pl.pages[i], pl.uw, pl.hh, 300);
+      doc.addImage(png, "PNG", pl.m, pl.m, pl.uw, pl.hh, undefined, "FAST");
+    }
+    doc.save(fileStem(p) + ".pdf");
+  } catch (e) {
+    alert("PDF 기능을 불러오지 못했습니다. 인터넷 연결을 확인하거나, [1:1 인쇄]에서 프린터를 'PDF로 저장'으로 골라 저장하세요.");
+  } finally { btn.disabled = false; btn.textContent = label; }
+}
+
+// ---------- Excel ----------
+async function saveXlsx() {
+  const { p, r } = state, pl = buildPrint(p, r);
+  const info = [
+    ["트러니언 현도 계산 결과"], [pl.desc], [],
+    ["전개 폭 (OD 둘레, mm)", +r.W.toFixed(1)], [`등분 간격 (${p.divs}등분, mm)`, +(r.W / p.divs).toFixed(1)],["곡선 최대 깊이 (mm)", +r.depth.toFixed(1)],
+    ["H (mm)", p.H], ["기준선 여유 G (mm)", p.G],
+    ["최단 컷 길이 (mm)", +r.Lmin.toFixed(1)], ["최장 컷 길이 (mm)", +r.Lmax.toFixed(1)], ["끝면 → 기준선 (mm)", +(r.Lmin - p.G).toFixed(1)], [],
+    ["번호", "각도 (°)", "둘레 위치 (mm)", "기준선 → 곡선 (mm)", "컷 길이 (mm)", "위치"],
+    ...r.divs.slice(0, -1).map(d => [d.k, +d.deg.toFixed(2), +d.x.toFixed(1), +d.ord.toFixed(1), +d.L.toFixed(1), d.deg % 90 === 0 ? quadName(p, d.deg) : ""]),
+  ];
+  const fine = [["각도 (°)", "둘레 위치 (mm)", "기준선 → 곡선 (mm)", "컷 길이 (mm)"]];
+  for (let deg = 0; deg < 360; deg++) {
+    const th = deg * Math.PI / 180, t = hitT(p, th);
+    fine.push([deg, +(p.rw * th).toFixed(2), +r.ord(t).toFixed(2), +(r.Href - t).toFixed(2)]);
+  }
+  try {
+    const X = await loadLib("xlsx");
+    const wb = X.utils.book_new();
+    const s1 = X.utils.aoa_to_sheet(info); s1["!cols"] = [{ wch: 22 }, { wch: 12 }, { wch: 15 }, { wch: 18 }, { wch: 14 }, { wch: 18 }];
+    const s2 = X.utils.aoa_to_sheet(fine); s2["!cols"] = [{ wch: 10 }, { wch: 15 }, { wch: 18 }, { wch: 14 }];
+    X.utils.book_append_sheet(wb, s1, "등분 치수표");
+    X.utils.book_append_sheet(wb, s2, "1도 간격 좌표");
+    X.writeFile(wb, fileStem(p) + ".xlsx");
+  } catch (e) {
+    // 인터넷이 안 될 때: 엑셀에서 바로 열리는 CSV로 저장
+    const csv = "﻿" + info.concat([[]], fine).map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\r\n");
+    download(fileStem(p) + ".csv", csv, "text/csv");
+  }
+}
+
+// ---------- DXF ----------
+function dxf(p, r) {
+  const out = ["0","SECTION","2","HEADER","9","$ACADVER","1","AC1009","9","$INSUNITS","70","4","0","ENDSEC","0","SECTION","2","ENTITIES"];
+  const Y = y => (-y).toFixed(3);
+  const line = (layer, x1, y1, x2, y2) => out.push("0","LINE","8",layer,"10",x1.toFixed(3),"20",Y(y1),"30","0","11",x2.toFixed(3),"21",Y(y2),"31","0");
+  const text = (layer, x, y, h, s, rot) => { out.push("0","TEXT","8",layer,"10",x.toFixed(3),"20",Y(y),"30","0","40",String(h),"1",s); if (rot) out.push("50", String(rot)); };
+  const { x0, top, tab } = TPL, W = r.W, yTop = top - 9;
+  const curve = curvePts(p, r, tab);
+  out.push("0","POLYLINE","8","CUT","66","1","70","0");
+  curve.forEach(q => out.push("0","VERTEX","8","CUT","10",q[0].toFixed(3),"20",Y(q[1]),"30","0"));
+  out.push("0","SEQEND","8","CUT");
+  line("CUT", x0, yTop, x0 + W + tab, yTop);
+  line("CUT", x0, yTop, x0, curve[0][1]);
+  line("CUT", x0 + W + tab, yTop, x0 + W + tab, curve[curve.length - 1][1]);
+  line("BASE", x0, top, x0 + W + tab, top);
+  line("OVERLAP", x0 + W, yTop, x0 + W, top + r.ord(hitT(p, 0)));
+  if (p.G >= 12) text("TEXT", x0 + 1, top + 7.6, 2.2, "BASE LINE");
+  const sp = W / p.divs;
+  for (let k = 0; k < p.divs; k++) {
+    line("DIM", x0 + k * sp + 0.4, top - 1.2, x0 + (k + 1) * sp - 0.4, top - 1.2);
+    if (sp >= 7 || k === 0) text("TEXT", x0 + (k + 0.5) * sp - 2.5, top - 1.9, 2.2, (sp >= 7 ? "" : "PITCH ") + f1(sp));
+  }
+  r.divs.forEach(d => {
+    const x = x0 + d.x;
+    line("GEN", x, yTop, x, top + d.ord);
+    text("TEXT", x + 0.8, yTop + 3, 2.6, String(d.k === p.divs ? 0 : d.k));
+    if (d.k < p.divs) text("TEXT", x - 0.8, top + Math.min(d.ord - 2, Math.max(8, d.ord / 2 + 3)), 2.4, f1(d.ord), 90);
+  });
+  out.push("0","ENDSEC","0","EOF");
+  return out.join("\r\n");
+}
+function download(name, data, type) {
+  const url = URL.createObjectURL(new Blob([data], { type }));
+  const a = document.createElement("a"); a.href = url; a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+}
+function fileStem(p) { return `trunnion_${p.horiz ? "horiz" : p.mode}_${f1(p.mainOd)}x${f1(p.trOd)}`.replace(/\./g, "_"); }
+
+// ---------- 화면 ----------
+let state = null;
+function render() {
+  const mode = document.querySelector('input[name="mode"]:checked').value;
+  document.querySelectorAll("[data-elbow]").forEach(el => el.hidden = mode === "straight");
+  document.querySelectorAll("[data-ev]").forEach(el => el.hidden = mode !== "elbow");
+  document.querySelectorAll("[data-eh]").forEach(el => el.hidden = mode !== "elbowH");
+  document.querySelectorAll("[data-straight]").forEach(el => el.hidden = mode !== "straight");
+  save();
+  const p = readParams(), r = compute(p);
+  state = { p, r };
+  $("msgs").innerHTML = r.errors.map(m => `<div class="msg bad">${esc(m)}</div>`).join("") + r.warns.map(m => `<div class="msg warn">${esc(m)}</div>`).join("");
+  const ok = !r.errors.length;
+  ["btnPrint","btnPdf","btnXlsx","btnDxf","btnSvg"].forEach(id => $(id).disabled = !ok);
+  if (!ok) { $("kpis").innerHTML = ""; $("schem").innerHTML = ""; $("preview").innerHTML = ""; $("tbl").innerHTML = ""; $("pageInfo").textContent = ""; return; }
+
+  const pl = buildPrint(p, r);
+  const kp = [
+    [f1(r.W), "전개 폭 (OD 둘레)"],
+    [f1(r.W / p.divs), `등분 간격 (${p.divs}등분)`],
+    [f1(r.depth), "곡선 최대 깊이"],
+    [f1(r.Lmin), "최단 컷 길이"],
+    [f1(r.Lmax), "최장 컷 길이"],
+    [f1(r.Lmin - p.G), "끝면 → 기준선"],
+  ];
+  $("kpis").innerHTML = kp.map(k => `<div class="kpi"><b>${k[0]}</b><span>${k[1]}</span></div>`).join("");
+  $("schem").innerHTML = schemSvg(p, r);
+  $("preview").innerHTML = templateSvg(p, r, false);
+  $("pageInfo").textContent = `${PAPERS[p.paper][2]} ${pl.cols * pl.rows}장 (${pl.cols}열 × ${pl.rows}행), 템플릿 ${f1(pl.g.Wt)} × ${f1(pl.g.Ht)} mm`;
+  let t = `<thead><tr><th class="l">번호</th><th>각도</th><th>둘레 위치</th><th>기준선 → 곡선</th><th>컷 길이 (끝면 기준)</th><th class="l">위치</th></tr></thead><tbody>`;
+  r.divs.slice(0, -1).forEach(d => {
+    t += `<tr><td class="l">${d.k}</td><td>${f1(d.deg)}°</td><td>${f1(d.x)}</td><td>${f1(d.ord)}</td><td>${f1(d.L)}</td><td class="l">${d.deg % 90 === 0 ? esc(quadName(p, d.deg)) : ""}</td></tr>`;
+  });
+  $("tbl").innerHTML = t + "</tbody>";
+}
+
+// ---------- 저장/복원 ----------
+function save() {
+  try {
+    const o = { mode: document.querySelector('input[name="mode"]:checked').value };
+    FIELDS.forEach(k => o[k] = $(k).value);
+    localStorage.setItem("trunnion-template", JSON.stringify(o));
+  } catch (e) { /* 저장 불가 환경 */ }
+}
+function load() {
+  let o = DEF;
+  try { const s = localStorage.getItem("trunnion-template"); if (s) o = Object.assign({}, DEF, JSON.parse(s)); } catch (e) { /* 기본값 사용 */ }
+  FIELDS.forEach(k => { if (o[k] !== undefined) $(k).value = o[k]; });
+  (o.mode === "elbow" ? $("mElbow") : o.mode === "elbowH" ? $("mElbowH") : $("mStraight")).checked = true;
+}
+
+function syncRb() {
+  const n = npsOf($("mainNps").value), rb = elbowRb($("rbType").value, n);
+  $("rb").readOnly = rb === null ? false : true;
+  if (rb !== null) $("rb").value = f1(rb);
+}
+$("mainNps").addEventListener("change", () => { const n = npsOf($("mainNps").value); if (n) $("mainOd").value = n[1]; else $("rbType").value = "custom"; syncRb(); render(); });
+$("trNps").addEventListener("change", () => { const n = npsOf($("trNps").value); if (n) { $("trOd").value = n[1]; $("trT").value = n[2]; } render(); });
+$("mainOd").addEventListener("input", () => { const n = npsOf($("mainNps").value); if (n && Math.abs(n[1] - parseFloat($("mainOd").value)) > 0.05) { $("mainNps").value = "custom"; $("rbType").value = "custom"; syncRb(); } });
+$("trOd").addEventListener("input", () => { const n = npsOf($("trNps").value); if (n && Math.abs(n[1] - parseFloat($("trOd").value)) > 0.05) $("trNps").value = "custom"; });
+$("rbType").addEventListener("change", () => { syncRb(); render(); });
+$("f").addEventListener("input", render);
+$("f").addEventListener("change", render);
+$("f").addEventListener("submit", e => e.preventDefault());
+$("btnReset").addEventListener("click", () => {
+  try { localStorage.removeItem("trunnion-template"); } catch (e) { /* 저장 불가 환경 */ }
+  load(); syncRb(); render();
+});
+// ---------- 전개도 확대 보기 ----------
+let zoom = 1;
+function setZoom(z, keepCenter) {
+  const v = $("zview"), svg = v.querySelector("svg");
+  if (!svg) return;
+  const cx = (v.scrollLeft + v.clientWidth / 2) / v.scrollWidth, cy = (v.scrollTop + v.clientHeight / 2) / v.scrollHeight;
+  zoom = Math.min(8, Math.max(1, z));
+  const vb = svg.viewBox.baseVal, base = Math.min(v.clientWidth, v.clientHeight * vb.width / vb.height);
+  svg.style.width = (base * zoom) + "px";
+  $("zLevel").textContent = Math.round(zoom * 100) + "%";
+  if (keepCenter) { v.scrollLeft = cx * v.scrollWidth - v.clientWidth / 2; v.scrollTop = cy * v.scrollHeight - v.clientHeight / 2; }
+}
+function openZoom() {
+  if (!state || state.r.errors.length) return;
+  $("zview").innerHTML = templateSvg(state.p, state.r, false);
+  $("zoomDlg").showModal();
+  setZoom(1, false);
+}
+$("preview").addEventListener("click", openZoom);
+$("preview").addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openZoom(); } });
+$("zIn").addEventListener("click", () => setZoom(zoom * 1.5, true));
+$("zOut").addEventListener("click", () => setZoom(zoom / 1.5, true));
+$("zFit").addEventListener("click", () => setZoom(1, true));
+$("zClose").addEventListener("click", () => $("zoomDlg").close());
+$("zoomDlg").addEventListener("click", e => { if (e.target === $("zoomDlg")) $("zoomDlg").close(); });
+$("zview").addEventListener("wheel", e => { if (e.ctrlKey) { e.preventDefault(); setZoom(zoom * (e.deltaY < 0 ? 1.2 : 1 / 1.2), true); } }, { passive: false });
+$("zview").addEventListener("dblclick", () => setZoom(zoom >= 8 ? 1 : zoom * 2, true));
+window.addEventListener("resize", () => { if ($("zoomDlg").open) setZoom(zoom, true); });
+{ // 끌어서 이동
+  const v = $("zview"); let drag = null;
+  v.addEventListener("pointerdown", e => { drag = { x: e.clientX, y: e.clientY, l: v.scrollLeft, t: v.scrollTop }; v.setPointerCapture(e.pointerId); v.classList.add("drag"); });
+  v.addEventListener("pointermove", e => { if (!drag) return; v.scrollLeft = drag.l - (e.clientX - drag.x); v.scrollTop = drag.t - (e.clientY - drag.y); });
+  const end = () => { drag = null; v.classList.remove("drag"); };
+  v.addEventListener("pointerup", end); v.addEventListener("pointercancel", end);
+}
+$("btnPdf").addEventListener("click", () => { if (state && !state.r.errors.length) savePdf(); });
+$("btnXlsx").addEventListener("click", () => { if (state && !state.r.errors.length) saveXlsx(); });
+$("btnPrint").addEventListener("click", () => { if (state && !state.r.errors.length) window.print(); });
+$("btnDxf").addEventListener("click", () => { if (state && !state.r.errors.length) download(fileStem(state.p) + ".dxf", dxf(state.p, state.r), "application/dxf"); });
+$("btnSvg").addEventListener("click", () => { if (state && !state.r.errors.length) download(fileStem(state.p) + ".svg", templateSvg(state.p, state.r, true), "image/svg+xml"); });
+
+load(); syncRb(); render();
+</script>
+</body>
+</html>
