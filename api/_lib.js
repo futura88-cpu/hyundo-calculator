@@ -3,6 +3,7 @@ const SB_URL = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
 const SB_KEY = process.env.SUPABASE_ANON_KEY || "";
 const ACCESS = "sb-access";
 const REFRESH = "sb-refresh";
+const KEEP = "sb-keep";   // '로그인 정보 기억하기'를 선택했는지 (토큰 갱신 때 같은 방식을 유지)
 
 const configured = () => Boolean(SB_URL && SB_KEY);
 
@@ -22,17 +23,20 @@ function parseCookies(req) {
   return out;
 }
 
+// maxAge가 null이면 세션 쿠키(브라우저를 닫으면 로그아웃)
 const cookie = (name, value, maxAge) =>
-  `${name}=${encodeURIComponent(value)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`;
+  `${name}=${encodeURIComponent(value)}; Path=/; HttpOnly; Secure; SameSite=Lax` + (maxAge === null ? "" : `; Max-Age=${maxAge}`);
 
-function setSession(res, s) {
+// keep=true: 30일간 로그인 유지 / false: 브라우저를 닫을 때까지만
+function setSession(res, s, keep) {
   res.setHeader("Set-Cookie", [
-    cookie(ACCESS, s.access_token, s.expires_in || 3600),
-    cookie(REFRESH, s.refresh_token, 60 * 60 * 24 * 30),
+    cookie(ACCESS, s.access_token, keep ? (s.expires_in || 3600) : null),
+    cookie(REFRESH, s.refresh_token, keep ? 60 * 60 * 24 * 30 : null),
+    cookie(KEEP, keep ? "1" : "0", keep ? 60 * 60 * 24 * 30 : null),
   ]);
 }
 function clearSession(res) {
-  res.setHeader("Set-Cookie", [cookie(ACCESS, "", 0), cookie(REFRESH, "", 0)]);
+  res.setHeader("Set-Cookie", [cookie(ACCESS, "", 0), cookie(REFRESH, "", 0), cookie(KEEP, "", 0)]);
 }
 
 // 본인 프로필의 승인 상태와 관리자 여부 (RLS로 본인 행만 읽힘). 행이 없으면 null
@@ -59,7 +63,7 @@ async function getSession(req, res) {
     if (r.ok) {
       const s = await r.json();
       token = s.access_token; user = s.user;
-      setSession(res, s);
+      setSession(res, s, c[KEEP] === "1");
     }
   }
   if (!user) return null;
