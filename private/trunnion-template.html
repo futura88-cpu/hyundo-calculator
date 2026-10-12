@@ -53,6 +53,25 @@ h1 { font-size: 22px; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
 .xlink + .xlink { margin-left: 0; }
 .grid { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 16px; align-items: start; }
 @media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+/* 한 열(모바일)일 때 표시 순서: 형태 선택 → 주관 → 트러니언 → 배치 → 개략도 → 전개도 미리보기 → 등분 치수표 → 출력 → 사용 순서
+   입력 폼과 결과 영역을 display: contents 로 풀어 모든 블록을 .grid 의 항목으로 두고 order 로 정렬합니다. */
+@media (max-width: 860px) {
+  .grid > form#f, .grid > .stack, .grid > .stack > .two { display: contents; }   /* 뒤쪽의 .stack/.two 규칙보다 우선하도록 선택자를 구체화 */
+  form#f > .seg { order: 0; margin-bottom: 0; }
+  form#f > fieldset { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; margin: 0; min-width: 0; }
+  form#f > fieldset:nth-of-type(1) { order: 1; }    /* 주관 */
+  form#f > fieldset:nth-of-type(2) { order: 2; }    /* 트러니언 */
+  form#f > fieldset:nth-of-type(3) { order: 3; }    /* 배치 */
+  form#f > fieldset:nth-of-type(4) { order: 9; }    /* 출력 */
+  #msgs { order: 4; }
+  #msgs:empty { display: none; }
+  .m-schem { order: 5; }
+  .m-prev { order: 6; }
+  .m-kpi { order: 7; }
+  .m-tbl { order: 8; }
+  .m-how { order: 10; }
+}
+@media (max-width: 520px) { form#f > fieldset { padding: 12px; } }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; min-width: 0; }
 .stack { display: grid; gap: 16px; min-width: 0; }
 h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
@@ -275,25 +294,25 @@ td.l, th.l { text-align: left; font-family: var(--f-body); }
 
     <div class="stack">
       <div class="msgs" id="msgs" aria-live="polite"></div>
-      <div class="card">
+      <div class="card m-kpi">
         <div class="kpis" id="kpis"></div>
       </div>
       <div class="two">
-        <div class="card schem">
+        <div class="card schem m-schem">
           <h2>개략도</h2>
           <div id="schem"></div>
         </div>
-        <div class="card">
+        <div class="card m-prev">
           <h2>전개도 미리보기</h2>
           <div class="paper-scroll" id="preview" role="button" tabindex="0" title="클릭하면 크게 봅니다" aria-label="전개도 크게 보기"></div>
           <p class="hint" style="margin-top:8px">미리보기를 누르면 크게 볼 수 있습니다. 굵은 선을 따라 오려 트러니언 OD에 감습니다. 오른쪽 회색 부분은 겹침(풀칠) 여유입니다.</p>
         </div>
       </div>
-      <div class="card">
+      <div class="card m-tbl">
         <h2>등분 치수표</h2>
         <div class="tbl"><table id="tbl"></table></div>
       </div>
-      <div class="card">
+      <div class="card m-how">
         <h2>사용 순서</h2>
         <ol class="how">
           <li>인쇄 대화상자에서 배율을 <b>100% (실제 크기)</b>로 두고, 출력물의 100 mm 눈금자를 자로 재서 확인합니다.</li>
