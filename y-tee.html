@@ -1,0 +1,863 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Y-Tee 현도 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap">
+<style id="pagestyle">@page { size: 297mm 210mm; margin: 8mm; }</style>
+<style>
+/* Layout: 왼쪽 입력 패널 + 오른쪽 결과(개략도, 전개도 미리보기, 치수표). 좁은 화면에서는 한 열. */
+:root {
+  --bg: #eef0ec;
+  --panel: #ffffff;
+  --ink: #1c231f;
+  --muted: #5d6762;
+  --line: #c8cec9;
+  --accent: #c2410c;      /* 안전 오렌지 */
+  --accent-soft: #fbe6da;
+  --steel: #3f5a6b;
+  --fill: #e3e8e4;
+  --bad: #b42318;
+  --bad-soft: #fde7e4;
+  --warn: #9a6700;
+  --warn-soft: #fff4d6;
+  --f-body: "IBM Plex Sans KR", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  --f-mono: "IBM Plex Mono", Consolas, "D2Coding", monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #151a17; --panel: #1d2420; --ink: #e6ebe7; --muted: #9aa59f; --line: #34403a;
+    --accent: #fb8a4c; --accent-soft: #3a2418; --steel: #9cc0d4; --fill: #26302b;
+    --bad: #ff8a7a; --bad-soft: #3b1d19; --warn: #f2c14e; --warn-soft: #352c14; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #151a17; --panel: #1d2420; --ink: #e6ebe7; --muted: #9aa59f; --line: #34403a;
+  --accent: #fb8a4c; --accent-soft: #3a2418; --steel: #9cc0d4; --fill: #26302b;
+  --bad: #ff8a7a; --bad-soft: #3b1d19; --warn: #f2c14e; --warn-soft: #352c14; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--f-body); padding: 0 16px; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 20px 40px; }
+header.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; margin-bottom: 16px; }
+h1 { font-size: 22px; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+.sub { color: var(--muted); font-size: 13px; }
+.xlink { margin-left: auto; align-self: center; font: 600 13px var(--f-body); color: var(--accent); text-decoration: none; border: 1px solid var(--accent); border-radius: 6px; padding: 6px 12px; background: var(--panel); white-space: nowrap; }
+.xlink:hover { background: var(--accent-soft); }
+.xlink:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.grid { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; min-width: 0; }
+.stack { display: grid; gap: 16px; min-width: 0; }
+h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
+fieldset { border: 0; padding: 0; margin: 0 0 14px; display: grid; gap: 8px; }
+fieldset:last-child { margin-bottom: 0; }
+legend { font-weight: 700; font-size: 13px; padding: 0; margin-bottom: 6px; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+label { display: grid; gap: 3px; font-size: 12px; color: var(--muted); }
+input, select { font: 14px var(--f-mono); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 5px; padding: 6px 8px; width: 100%; min-width: 0; }
+input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; margin-bottom: 14px; }
+.seg input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.seg label { color: var(--ink); font-size: 13px; font-weight: 500; text-align: center; padding: 8px 4px; line-height: 1.3; cursor: pointer; background: var(--bg); }
+.seg input:checked + span { color: var(--accent); }
+.seg label:has(input:checked) { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+.seg label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: -2px; }
+.hint { font-size: 12px; color: var(--muted); margin: 0; }
+.unit { font-size: 11px; color: var(--muted); }
+.btns { display: flex; flex-wrap: wrap; gap: 8px; }
+button { font: 600 13px var(--f-body); border-radius: 6px; padding: 8px 14px; cursor: pointer; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) button.primary { color: #1a0d05; } }
+:root[data-theme="dark"] button.primary { color: #1a0d05; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.kpi { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }
+.kpi b { display: block; font: 600 18px var(--f-mono); font-variant-numeric: tabular-nums; }
+.kpi span { font-size: 12px; color: var(--muted); }
+.msgs { display: grid; gap: 6px; }
+.msg { border-radius: 6px; padding: 8px 10px; font-size: 13px; }
+.msg.bad { background: var(--bad-soft); color: var(--bad); }
+.msg.warn { background: var(--warn-soft); color: var(--warn); }
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 16px; }
+@media (max-width: 1100px) { .two { grid-template-columns: minmax(0, 1fr); } }
+.schem svg { width: 100%; height: auto; max-height: 360px; display: block; }
+.schem .pipe { fill: var(--fill); stroke: var(--ink); stroke-width: 1.2; vector-effect: non-scaling-stroke; }
+.schem .trn { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.4; vector-effect: non-scaling-stroke; }
+.schem .cl { stroke: var(--steel); stroke-width: 0.8; stroke-dasharray: 8 3 2 3; fill: none; vector-effect: non-scaling-stroke; }
+.schem .dim { stroke: var(--steel); stroke-width: 0.9; fill: none; vector-effect: non-scaling-stroke; }
+.schem text { fill: var(--steel); font-family: var(--f-mono); }
+.paper-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+.paper-scroll svg { display: block; width: 100%; height: auto; }
+.paper-scroll { cursor: zoom-in; }
+.paper-scroll:hover { border-color: var(--accent); }
+.paper-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#zoomDlg { width: calc(100vw - 32px); height: calc(100vh - 32px); height: calc(100dvh - 32px); max-width: none; max-height: none; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); }
+#zoomDlg[open] { display: flex; flex-direction: column; }
+#zoomDlg::backdrop { background: rgba(10, 14, 12, 0.6); }
+.zbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+.zbar .btns button { min-width: 44px; }
+.zlevel { font: 600 13px var(--f-mono); color: var(--muted); min-width: 52px; text-align: center; }
+.zview { flex: 1; overflow: auto; background: #fff; cursor: grab; touch-action: none; }
+.zview.drag { cursor: grabbing; }
+.zview svg { display: block; height: auto; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+.tbl { overflow-x: auto; }
+th, td { padding: 5px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-size: 12px; color: var(--muted); font-weight: 500; }
+td { font-family: var(--f-mono); font-size: 13px; }
+td.l, th.l { text-align: left; font-family: var(--f-body); }
+.how { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 13px; }
+#print { display: none; }
+/* 휴대폰: 입력칸 한 줄, 표는 화면 폭에 맞춤, 입력 시 iOS 자동 확대 방지(16px) */
+@media (max-width: 520px) {
+  body { padding: 0 12px; }
+  .wrap { padding-block: 14px 28px; }
+  .card { padding: 12px; }
+  h1 { font-size: 20px; }
+  .row { grid-template-columns: minmax(0, 1fr); }
+  input, select { font-size: 16px; padding: 8px; }
+  .seg label { font-size: 12.5px; padding: 8px 2px; }
+  .btns button { flex: 1 1 calc(50% - 4px); }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kpi b { font-size: 16px; }
+  .dt { table-layout: fixed; }
+  .dt th, .dt td { padding: 4px 3px; font-size: 11.5px; white-space: normal; word-break: keep-all; }
+  .dt th:nth-child(1), .dt td:nth-child(1) { width: 12%; }
+  .dt td.l:last-child { font-size: 11px; }
+  #zoomDlg { width: 100vw; height: 100vh; height: 100dvh; border-radius: 0; border: 0; }
+  .zbar { padding: 8px 10px; }
+  .zbar b { display: none; }
+  .zbar .btns { width: 100%; flex-wrap: nowrap; }
+  .zbar .btns button { flex: 1 1 auto; min-width: 0; padding: 8px 6px; }
+}
+@media print {
+  body { background: #fff; color: #000; padding: 0; }
+  .wrap { display: none; }
+  #print { display: block; }
+  #zoomDlg { display: none !important; }
+  .page { break-after: page; overflow: hidden; position: relative; }
+  .page:last-child { break-after: auto; }
+  .ph { display: flex; justify-content: space-between; align-items: flex-end; gap: 4mm; height: 12mm; font: 9pt "Malgun Gothic", sans-serif; color: #000; border-bottom: 0.2mm solid #000; margin-bottom: 1.5mm; }
+  .ph .t { font-weight: 700; font-size: 10pt; }
+  .page svg { display: block; }
+}
+</style>
+</head>
+<body>
+<noscript>
+  <div style="margin:16px 0;padding:14px 16px;border:2px solid #c2410c;border-radius:8px;background:#fbe6da;color:#1c231f;font:15px/1.6 'Malgun Gothic','Apple SD Gothic Neo',sans-serif">
+    <b>이 화면에서는 계산이 되지 않습니다.</b><br>
+    파일 앱이나 메신저의 미리보기는 계산 기능(JavaScript)을 실행하지 않습니다.<br>
+    크롬, 엣지, 사파리 같은 브라우저에서 이 파일을 직접 여세요.
+  </div>
+</noscript>
+<div class="wrap">
+  <header class="top">
+    <h1>Y-Tee 현도 계산기</h1>
+    <span class="sub">주관에 비스듬히 붙는 가지관(Y-Tee, 래터럴)의 가지관 끝 현도와 주관 구멍 현도를 1:1 템플릿으로 출력합니다. 단위 mm</span>
+    <a class="xlink" href="trunnion-template.html">← 트러니언 현도 계산기</a>
+  </header>
+
+  <div class="grid">
+    <form class="card" id="f" autocomplete="off">
+      <fieldset>
+        <legend>주관 (구멍을 뚫을 배관)</legend>
+        <div class="row">
+          <label>호칭경 <select id="mainNps"></select></label>
+          <label>OD <input id="mainOd" type="number" step="0.1" min="1"></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>가지관</legend>
+        <div class="row">
+          <label>호칭경 <select id="trNps"></select></label>
+          <label>OD <input id="trOd" type="number" step="0.1" min="1"></label>
+        </div>
+        <div class="row">
+          <label>두께 <input id="trT" type="number" step="0.01" min="0"></label>
+          <label>윤곽 기준
+            <select id="contact">
+              <option value="id">ID (셋온, 권장)</option>
+              <option value="od">OD</option>
+            </select>
+          </label>
+        </div>
+        <p class="hint">ID 기준: 가지관 안쪽 모서리가 주관에 닿고, 바깥 모서리는 개선(베벨) 가공합니다. 주관 구멍도 같은 윤곽(ID 기준이면 가지관 ID 크기)으로 뚫습니다. 가지관 템플릿은 OD 둘레로 전개합니다.</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>배치</legend>
+        <div class="row">
+          <label>교차각 α (°) <input id="angle" type="number" step="0.5" min="15" max="90"></label>
+          <label>편심 e <input id="offE" type="number" step="0.5"></label>
+        </div>
+        <p class="hint">α = 주관 축과 가지관 축 사이 각도 (Y-Tee는 보통 45, 90이면 직교 티). e = 두 축 사이 거리 (동심 = 0). 가지관은 주관 축의 +x 방향(예각 쪽)으로 기울어집니다.</p>
+        <label>H: 주관 중심 → 가지관 끝 <input id="height" type="number" step="1" min="0"></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>출력</legend>
+        <div class="row">
+          <label>등분 수
+            <select id="divs">
+              <option>8</option><option>12</option><option selected>16</option><option>24</option><option>32</option>
+            </select>
+          </label>
+          <label>용지
+            <select id="paper">
+              <option value="A4L">A4 가로</option>
+              <option value="A3L">A3 가로</option>
+            </select>
+          </label>
+        </div>
+        <div class="btns">
+          <button type="button" class="primary" id="btnPrint">1:1 인쇄</button>
+          <button type="button" id="btnDxf">DXF 저장</button>
+          <button type="button" id="btnPdf">PDF 저장</button>
+          <button type="button" id="btnXlsx">Excel 저장</button>
+          <button type="button" id="btnSvg">SVG 저장</button>
+          <button type="button" id="btnReset">초기화</button>
+        </div>
+        <p class="hint" id="pageInfo"></p>
+      </fieldset>
+    </form>
+
+    <div class="stack">
+      <div class="msgs" id="msgs" aria-live="polite"></div>
+      <div class="card">
+        <div class="kpis" id="kpis"></div>
+      </div>
+      <div class="two">
+        <div class="card schem">
+          <h2>개략도</h2>
+          <div id="schem"></div>
+        </div>
+        <div class="card">
+          <h2>가지관 끝 현도 미리보기</h2>
+          <div class="paper-scroll" id="preview" role="button" tabindex="0" title="클릭하면 크게 봅니다" aria-label="가지관 현도 크게 보기"></div>
+          <p class="hint" style="margin-top:8px">굵은 선을 따라 오려 가지관 OD에 감습니다. 오른쪽 회색 부분은 겹침(풀칠) 여유입니다.</p>
+        </div>
+      </div>
+      <div class="card">
+        <h2>주관 구멍 현도 미리보기</h2>
+        <div class="paper-scroll" id="preview2" role="button" tabindex="0" title="클릭하면 크게 봅니다" aria-label="주관 구멍 현도 크게 보기"></div>
+        <p class="hint" style="margin-top:8px">주관에 감는 종이입니다. 가로는 주관 축방향(오른쪽이 가지관이 기울어진 쪽), 세로는 원주방향입니다. 점선 정상선을 가지관이 붙는 쪽의 주관 중심 모선(맨 위 직선)에 맞추고, 축 교차선이 보이면 기준 위치에 맞춰 윤곽을 마킹합니다.</p>
+      </div>
+      <div class="card">
+        <h2>가지관 등분 치수표</h2>
+        <div class="tbl"><table id="tbl" class="dt"></table></div>
+      </div>
+      <div class="card">
+        <h2>주관 구멍 등분 치수표</h2>
+        <div class="tbl"><table id="tbl2" class="dt"></table></div>
+        <p class="hint" style="margin-top:8px">x는 주관 축방향, s는 정상선에서 원주를 따라 잰 호 길이(+e 쪽이 +)입니다. 가지관 번호와 같은 번호의 점이 서로 맞닿습니다.</p>
+      </div>
+      <div class="card">
+        <h2>사용 순서</h2>
+        <ol class="how">
+          <li>인쇄 대화상자에서 배율을 <b>100% (실제 크기)</b>로 두고, 출력물의 100 mm 눈금자를 자로 재서 확인합니다.</li>
+          <li>여러 장이면 회색 겹침 띠를 맞춰 이어 붙입니다.</li>
+          <li><b>가지관</b>: 직각 기준선을 긋고 가지관 현도의 기준선을 맞춰 감은 뒤 곡선을 마킹해 절단합니다. 0° 선은 개략도의 방향에 맞춥니다.</li>
+          <li><b>주관</b>: 정상선(주관 위쪽 모선)과 축 교차 위치를 긋고 구멍 현도를 감아 윤곽을 마킹해 절단합니다. 가지관을 얹을 때 같은 번호끼리 맞춥니다.</li>
+          <li>현도 없이 마킹할 때는 치수표의 값을 등분선마다 재면 됩니다.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="print"></div>
+<dialog id="zoomDlg" aria-label="현도 확대 보기">
+  <div class="zbar">
+    <b id="zTitle">현도 확대</b>
+    <div class="btns">
+      <button type="button" id="zOut" aria-label="축소">−</button>
+      <span class="zlevel" id="zLevel">100%</span>
+      <button type="button" id="zIn" aria-label="확대">+</button>
+      <button type="button" id="zFit">화면 맞춤</button>
+      <button type="button" class="primary" id="zClose">닫기</button>
+    </div>
+  </div>
+  <div class="zview" id="zview"></div>
+</dialog>
+
+<script>
+"use strict";
+// [호칭, OD, STD 두께, 호칭(inch)]
+const NPS = [
+  ['1/2"',21.3,2.77,0.5],['3/4"',26.7,2.87,0.75],['1"',33.4,3.38,1],['1-1/4"',42.2,3.56,1.25],
+  ['1-1/2"',48.3,3.68,1.5],['2"',60.3,3.91,2],['2-1/2"',73.0,5.16,2.5],['3"',88.9,5.49,3],
+  ['3-1/2"',101.6,5.74,3.5],['4"',114.3,6.02,4],['5"',141.3,6.55,5],['6"',168.3,7.11,6],
+  ['8"',219.1,8.18,8],['10"',273.1,9.27,10],['12"',323.9,9.53,12],['14"',355.6,9.53,14],
+  ['16"',406.4,9.53,16],['18"',457.2,9.53,18],['20"',508.0,9.53,20],['22"',558.8,9.53,22],['24"',609.6,9.53,24]
+];
+const PAPERS = { A4L: [297, 210, "A4 가로"], A4P: [210, 297, "A4 세로"], A3L: [420, 297, "A3 가로"] };
+const DEF = { mainNps: "6\"", mainOd: 168.3, trNps: "4\"", trOd: 114.3, trT: 6.02,
+  contact: "id", angle: 45, offE: 0, height: 300, divs: "16", paper: "A4L" };
+const $ = id => document.getElementById(id);
+const FIELDS = ["mainNps","mainOd","trNps","trOd","trT","contact","angle","offE","height","divs","paper"];
+const f1 = v => (Math.round(v * 10) / 10).toFixed(1);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function fillNps(sel) {
+  sel.innerHTML = NPS.map(n => `<option value='${n[0]}'>${n[0]}</option>`).join("") + `<option value="custom">직접 입력</option>`;
+}
+fillNps($("mainNps")); fillNps($("trNps"));
+function npsOf(name) { return NPS.find(n => n[0] === name); }
+
+// ---------- 입력 ----------
+function readParams() {
+  const n = id => parseFloat($(id).value);
+  const p = { mainOd: n("mainOd"), trOd: n("trOd"), trT: n("trT"), contact: $("contact").value,
+    angle: n("angle"), e: n("offE"), H: n("height"), G: 30 /* 기준선 여유 (고정) */, divs: parseInt($("divs").value, 10), paper: $("paper").value };
+  p.R = p.mainOd / 2;
+  p.rw = p.trOd / 2;
+  p.rc = p.contact === "id" ? (p.trOd - 2 * p.trT) / 2 : p.trOd / 2;
+  return p;
+}
+
+// ---------- 형상 계산 ----------
+// 주관 축 = x, 가지관 축 방향 d=(cosα,0,sinα), 축은 (0,e,0)을 지남. 가지관은 +x 쪽(예각 쪽)으로 기울어짐.
+// θ=0 생성선은 둔각 쪽(−x), θ=90°는 +e 쪽 측면.
+// hitT: 가지관 축 위 거리 t (주관 중심 높이 기준) / holePt: 같은 점의 주관 전개 좌표 (x: 축방향, s: 정상선에서 원주 호 길이)
+function hitT(p, th) {
+  const al = p.angle * Math.PI / 180, y = p.e + p.rc * Math.sin(th);
+  if (Math.abs(y) > p.R) return NaN;
+  return (Math.sqrt(p.R * p.R - y * y) - p.rc * Math.cos(th) * Math.cos(al)) / Math.sin(al);
+}
+function holePt(p, th) {
+  const al = p.angle * Math.PI / 180, c = Math.cos(th), y = p.e + p.rc * Math.sin(th);
+  const z = Math.sqrt(Math.max(0, p.R * p.R - y * y));
+  const t = (z - p.rc * c * Math.cos(al)) / Math.sin(al);
+  return { x: t * Math.cos(al) - p.rc * c * Math.sin(al), s: p.R * Math.atan2(y, z) };
+}
+
+function compute(p) {
+  const errors = [], warns = [];
+  if (!(p.mainOd > 0 && p.trOd > 0)) errors.push("주관 OD와 가지관 OD를 입력하세요.");
+  if (!(p.trT >= 0) || p.trT * 2 >= p.trOd) errors.push("가지관 두께가 올바르지 않습니다.");
+  if (!(p.angle >= 15 && p.angle <= 90)) errors.push("교차각 α는 15°~90° 사이로 입력하세요.");
+  if ([p.e, p.H, p.G].some(v => !Number.isFinite(v))) errors.push("빈 칸을 채워 주세요.");
+  if (errors.length) return { errors, warns };
+
+  const off = Math.abs(p.e);
+  if (off + p.rc > p.R + 1e-9) {
+    errors.push(`가지관이 주관 밖으로 벗어납니다. 편심 + 가지관 반경(${f1(off + p.rc)})이 주관 반경(${f1(p.R)})보다 큽니다. 편심을 줄이거나 더 작은 가지관을 쓰세요.`);
+    return { errors, warns };
+  }
+  if (p.trOd > p.mainOd) warns.push("가지관 OD가 주관 OD보다 큽니다. 맞는지 확인하세요.");
+  if (off + p.rw > p.R + 1e-6 && off + p.rc <= p.R) warns.push("가지관 바깥 모서리 일부가 주관 측면을 벗어납니다. 해당 부분은 용접 시 틈이 생길 수 있습니다.");
+
+  const N = 720, fine = [];
+  for (let i = 0; i <= N; i++) { const th = 2 * Math.PI * i / N; fine.push({ th, t: hitT(p, th) }); }
+  if (fine.some(q => !Number.isFinite(q.t))) { errors.push("교차선을 계산할 수 없는 배치입니다. 입력값을 확인하세요."); return { errors, warns }; }
+
+  const tmax = Math.max(...fine.map(q => q.t)), tmin = Math.min(...fine.map(q => q.t));
+  const ord = t => p.G + (tmax - t);
+  const W = 2 * Math.PI * p.rw;
+  const divs = [];
+  for (let k = 0; k <= p.divs; k++) {
+    const th = 2 * Math.PI * k / p.divs, t = hitT(p, th), hp = holePt(p, th);
+    divs.push({ k, deg: 360 * k / p.divs, x: p.rw * th, ord: ord(t), L: p.H - t, hx: hp.x, hs: hp.s });
+  }
+  const hpts = fine.map(q => holePt(p, q.th));
+  const hole = { pts: hpts, xmin: Math.min(...hpts.map(q => q.x)), xmax: Math.max(...hpts.map(q => q.x)),
+    smin: Math.min(...hpts.map(q => q.s)), smax: Math.max(...hpts.map(q => q.s)) };
+  const Lmin = p.H - tmax, Lmax = p.H - tmin;
+  if (p.H > 0 && Lmin - p.G < 0) warns.push("기준선이 가지관 끝면보다 바깥에 놓입니다. H를 늘리세요.");
+  if (p.H > 0 && Lmin <= 0) errors.push("H가 너무 짧아 가지관이 주관과 겹칩니다. H를 늘리세요.");
+  return { errors, warns, fine, divs, hole, tmax, tmin, depth: tmax - tmin, W, ord, Lmin, Lmax };
+}
+
+function quadName(p, deg) {
+  const ax = p.angle >= 89.99;
+  return { 0: ax ? "주관 −x 방향" : "둔각 쪽 (−x)", 90: p.e ? "측면 (+e)" : "측면", 180: ax ? "주관 +x 방향" : "예각 쪽 (+x)", 270: p.e ? "측면 (−e)" : "측면" }[deg];
+}
+
+// ---------- 템플릿 (mm 좌표) ----------
+const TPL = { x0: 8, top: 16, tab: 15, bottom: 12 };
+function templateGeom(p, r) {
+  const Wt = TPL.x0 + r.W + TPL.tab + 8;
+  const Ht = TPL.top + p.G + r.depth + TPL.bottom;
+  return { Wt, Ht };
+}
+function curvePts(p, r, extra) {
+  const pts = [], N = 720, endTh = 2 * Math.PI + extra / p.rw;
+  for (let i = 0; i <= N; i++) {
+    const th = endTh * i / N;
+    pts.push([TPL.x0 + p.rw * th, TPL.top + r.ord(hitT(p, th % (2 * Math.PI)))]);
+  }
+  return pts;
+}
+function templateSvgInner(p, r) {
+  const { x0, top, tab } = TPL, W = r.W, yTop = top - 9;
+  const curve = curvePts(p, r, tab);
+  const path = curve.map((q, i) => (i ? "L" : "M") + q[0].toFixed(2) + " " + q[1].toFixed(2)).join("");
+  const outline = `M${x0} ${yTop}H${(x0 + W + tab).toFixed(2)}V${curve[curve.length - 1][1].toFixed(2)}` +
+    curve.slice().reverse().map(q => "L" + q[0].toFixed(2) + " " + q[1].toFixed(2)).join("") + "Z";
+  const tabCurve = curve.filter(q => q[0] >= x0 + W);
+  const tabPath = `M${(x0 + W).toFixed(2)} ${yTop}H${(x0 + W + tab).toFixed(2)}` +
+    tabCurve.slice().reverse().map(q => "L" + q[0].toFixed(2) + " " + q[1].toFixed(2)).join("") + "Z";
+  let s = `<path d="${outline}" fill="#fff" stroke="none"/>`;
+  s += `<path d="${tabPath}" fill="#d9d9d9" stroke="none"/>`;
+  s += `<text x="${(x0 + W + tab / 2).toFixed(2)}" y="${(top + 6).toFixed(2)}" font-size="2.6" text-anchor="middle" fill="#444">겹침</text>`;
+  // 등분선
+  r.divs.forEach(d => {
+    const x = x0 + d.x, y = top + d.ord;
+    const major = d.deg % 90 === 0;
+    s += `<line x1="${x.toFixed(2)}" y1="${yTop}" x2="${x.toFixed(2)}" y2="${y.toFixed(2)}" stroke="#000" stroke-width="${major ? 0.3 : 0.15}" ${major ? "" : 'stroke-dasharray="1.2 0.8"'}/>`;
+    s += `<text x="${(x + 0.8).toFixed(2)}" y="${(yTop + 3).toFixed(2)}" font-size="2.6" font-weight="700" fill="#000">${d.k === p.divs ? 0 : d.k}</text>`;
+    if (d.k < p.divs) {
+      const ty = top + Math.min(d.ord - 2, Math.max(8, d.ord / 2 + 3));
+      s += `<text transform="translate(${(x - 0.8).toFixed(2)} ${ty.toFixed(2)}) rotate(-90)" font-size="2.4" fill="#000">${f1(d.ord)}</text>`;
+    }
+    if (major && d.k < p.divs) s += `<text x="${(x + 0.8).toFixed(2)}" y="${(top + 4.5).toFixed(2)}" font-size="2.4" fill="#000">${d.deg}° ${esc(quadName(p, d.deg))}</text>`;
+  });
+  // 기준선, 좌우 경계, 곡선
+  s += `<line x1="${x0}" y1="${top}" x2="${(x0 + W + tab).toFixed(2)}" y2="${top}" stroke="#000" stroke-width="0.35"/>`;
+  if (p.G >= 12) s += `<text x="${x0 + 0.8}" y="${top + 7.6}" font-size="2.2" fill="#000">↑ 기준선</text>`;
+  // 등분 간격 치수 (기준선 바로 위 줄)
+  const sp = W / p.divs, dy = top - 1.2;
+  const dim = (xa, xb, label) => {
+    s += `<line x1="${(xa + 0.4).toFixed(2)}" y1="${dy}" x2="${(xb - 0.4).toFixed(2)}" y2="${dy}" stroke="#000" stroke-width="0.12"/>` +
+      `<path d="M${(xa + 0.4).toFixed(2)} ${dy}l1.2 -0.45v0.9zM${(xb - 0.4).toFixed(2)} ${dy}l-1.2 -0.45v0.9z" fill="#000"/>` +
+      `<text x="${((xa + xb) / 2).toFixed(2)}" y="${dy - 0.7}" font-size="2.2" text-anchor="middle" fill="#000">${label}</text>`;
+  };
+  if (sp >= 7) for (let k = 0; k < p.divs; k++) dim(x0 + k * sp, x0 + (k + 1) * sp, f1(sp));
+  else { dim(x0, x0 + sp, ""); s += `<text x="${(x0 + sp + 1).toFixed(2)}" y="${dy + 0.8}" font-size="2.2" fill="#000">등분 간격 ${f1(sp)}</text>`; }
+  s += `<line x1="${x0}" y1="${yTop}" x2="${x0}" y2="${curve[0][1].toFixed(2)}" stroke="#000" stroke-width="0.4"/>`;
+  s += `<line x1="${(x0 + W + tab).toFixed(2)}" y1="${yTop}" x2="${(x0 + W + tab).toFixed(2)}" y2="${curve[curve.length - 1][1].toFixed(2)}" stroke="#000" stroke-width="0.4"/>`;
+  s += `<line x1="${x0}" y1="${yTop}" x2="${(x0 + W + tab).toFixed(2)}" y2="${yTop}" stroke="#000" stroke-width="0.4"/>`;
+  s += `<path d="${path}" fill="none" stroke="#000" stroke-width="0.6"/>`;
+  return s;
+}
+
+// ---------- 주관 구멍 템플릿 (mm 좌표) ----------
+// 가로 = 주관 축방향(x, 오른쪽이 가지관이 기울어진 쪽), 세로 = 원주방향(s, 정상선 기준 아래가 +e 쪽)
+const HM = { mx: 22, my: 18 };
+function holeGeom(p, r) {
+  const h = r.hole;
+  return { Wt: (h.xmax - h.xmin) + 2 * HM.mx, Ht: (h.smax - h.smin) + 2 * HM.my };
+}
+function holeInner(p, r) {
+  const h = r.hole, { mx, my } = HM, g = holeGeom(p, r);
+  const X = x => mx + (x - h.xmin), Y = s => my + (s - h.smin);
+  const q = v => v.toFixed(2);
+  const cx = (X(h.xmin) + X(h.xmax)) / 2, cy = (Y(h.smin) + Y(h.smax)) / 2;
+  const dash = 'stroke="#000" stroke-width="0.25" stroke-dasharray="6 1.5 1 1.5"';
+  let s = "";
+  s += `<text x="2" y="5" font-size="3" font-weight="700" fill="#000">주관 구멍 현도</text>`;
+  s += `<text x="2" y="9" font-size="2.2" fill="#000">가로: 주관 축방향 (→ 가지관이 기울어진 쪽) / 세로: 원주방향</text>`;
+  // 정상선(s=0) 과 축 교차선(x=0)
+  s += `<line x1="2" y1="${q(Y(0))}" x2="${q(X(h.xmax) + 5)}" y2="${q(Y(0))}" ${dash}/>`;
+  s += `<text x="2.5" y="${q(Y(0) - 1)}" font-size="2.4" fill="#000">정상선</text>`;
+  const x0 = X(0);
+  if (x0 > 8 && x0 < g.Wt - 8) {
+    s += `<line x1="${q(x0)}" y1="12" x2="${q(x0)}" y2="${q(g.Ht - 2)}" ${dash}/>`;
+    s += `<text x="${q(x0 + 1)}" y="13.5" font-size="2.4" fill="#000">축 교차선 (x=0)</text>`;
+  }
+  // 구멍 윤곽
+  const path = h.pts.map((c, i) => (i ? "L" : "M") + q(X(c.x)) + " " + q(Y(c.s))).join("") + "Z";
+  s += `<path d="${path}" fill="none" stroke="#000" stroke-width="0.6"/>`;
+  // 등분점 번호
+  r.divs.slice(0, -1).forEach(d => {
+    const px = X(d.hx), py = Y(d.hs);
+    let vx = px - cx, vy = py - cy; const len = Math.hypot(vx, vy) || 1; vx /= len; vy /= len;
+    s += `<line x1="${q(px)}" y1="${q(py)}" x2="${q(px + vx * 2.2)}" y2="${q(py + vy * 2.2)}" stroke="#000" stroke-width="0.2"/>`;
+    s += `<circle cx="${q(px)}" cy="${q(py)}" r="0.6" fill="#000"/>`;
+    s += `<text x="${q(px + vx * 4)}" y="${q(py + vy * 4 + 0.9)}" font-size="2.6" font-weight="700" text-anchor="middle" fill="#000">${d.k}</text>`;
+  });
+  // 치수 (가로: 구멍 길이, 세로: 구멍 폭)
+  const yb = Y(h.smax) + 9, xr = X(h.xmax) + 9, xa = X(h.xmin), xb = X(h.xmax), ya = Y(h.smin), yz = Y(h.smax);
+  s += `<line x1="${q(xa)}" y1="${q(yz + 1)}" x2="${q(xa)}" y2="${q(yb + 1.5)}" stroke="#000" stroke-width="0.12"/>`;
+  s += `<line x1="${q(xb)}" y1="${q(yz + 1)}" x2="${q(xb)}" y2="${q(yb + 1.5)}" stroke="#000" stroke-width="0.12"/>`;
+  s += `<line x1="${q(xa)}" y1="${q(yb)}" x2="${q(xb)}" y2="${q(yb)}" stroke="#000" stroke-width="0.15"/>`;
+  s += `<path d="M${q(xa)} ${q(yb)}l1.6 -0.5v1zM${q(xb)} ${q(yb)}l-1.6 -0.5v1z" fill="#000"/>`;
+  s += `<text x="${q(cx)}" y="${q(yb - 1)}" font-size="2.6" text-anchor="middle" fill="#000">${f1(h.xmax - h.xmin)}</text>`;
+  s += `<line x1="${q(xb + 1)}" y1="${q(ya)}" x2="${q(xr + 1.5)}" y2="${q(ya)}" stroke="#000" stroke-width="0.12"/>`;
+  s += `<line x1="${q(xb + 1)}" y1="${q(yz)}" x2="${q(xr + 1.5)}" y2="${q(yz)}" stroke="#000" stroke-width="0.12"/>`;
+  s += `<line x1="${q(xr)}" y1="${q(ya)}" x2="${q(xr)}" y2="${q(yz)}" stroke="#000" stroke-width="0.15"/>`;
+  s += `<path d="M${q(xr)} ${q(ya)}l-0.5 1.6h1zM${q(xr)} ${q(yz)}l-0.5 -1.6h1z" fill="#000"/>`;
+  s += `<text transform="translate(${q(xr - 1)} ${q(ya + (yz - ya) * 0.25)}) rotate(-90)" font-size="2.6" text-anchor="middle" fill="#000">${f1(h.smax - h.smin)}</text>`;
+  return s;
+}
+
+function tplItems(p, r) {
+  return [
+    { key: "branch", name: "가지관 끝 현도", inner: templateSvgInner(p, r), ...templateGeom(p, r) },
+    { key: "hole", name: "주관 구멍 현도", inner: holeInner(p, r), ...holeGeom(p, r) },
+  ];
+}
+function tplSvg(it, forFile) {
+  const size = forFile ? `width="${it.Wt.toFixed(1)}mm" height="${it.Ht.toFixed(1)}mm"` : "";
+  return `<svg xmlns="http://www.w3.org/2000/svg" ${size} viewBox="0 0 ${it.Wt.toFixed(2)} ${it.Ht.toFixed(2)}" font-family="Malgun Gothic, sans-serif">` +
+    `<rect width="100%" height="100%" fill="#fafafa"/>` + it.inner + `</svg>`;
+}
+
+// ---------- 개략도 ----------
+function schemSvg(p, r) {
+  const els = [], pts = [];
+  const add = (x, y) => pts.push([x, y]);
+  const al = p.angle * Math.PI / 180, dx = Math.cos(al), dz = Math.sin(al);
+  const ux = -Math.sin(al), uz = Math.cos(al);
+  const P = (t, k) => [t * dx + k * ux, -(t * dz + k * uz)];
+  const span = Math.max(2.2 * p.R, Math.abs(p.H * dx) + p.rw + p.R);
+  const curve = [];
+  for (let i = 0; i <= 90; i++) { const th = Math.PI * i / 90; curve.push(P(hitT(p, th), p.rc * Math.cos(th))); }
+  const e0 = P(p.H, p.rc), e1 = P(p.H, -p.rc);
+  const poly = [e0, ...curve, e1];
+  poly.forEach(q => add(...q));
+  els.push(`<polygon class="trn" points="${poly.map(q => q.map(v => v.toFixed(1)).join(",")).join(" ")}"/>`);
+  els.push(`<rect class="pipe" x="${-span}" y="${-p.R}" width="${2 * span}" height="${2 * p.R}"/>`);
+  add(-span, -p.R); add(span, p.R);
+  els.push(`<line class="cl" x1="${-span - 10}" y1="0" x2="${span + 10}" y2="0"/>`);
+  const c = P(p.H + 15, 0);
+  els.push(`<line class="cl" x1="0" y1="0" x2="${c[0].toFixed(1)}" y2="${c[1].toFixed(1)}"/>`);
+  add(...c);
+  const lbl = P(p.H * 0.75, -(p.rw + 0.12 * p.R));
+  els.push(`<text x="${lbl[0].toFixed(1)}" y="${lbl[1].toFixed(1)}" font-size="{FS}">H ${f1(p.H)}</text>`);
+  if (p.angle < 89.99) els.push(`<text x="${(0.6 * p.R).toFixed(1)}" y="${(-1.15 * p.R).toFixed(1)}" font-size="{FS}">α ${p.angle}°</text>`);
+  const z0 = P(hitT(p, 0) + 0.25 * (p.H - hitT(p, 0)), p.rw + 0.05 * p.R);
+  els.push(`<text x="${z0[0].toFixed(1)}" y="${z0[1].toFixed(1)}" font-size="{FS}" text-anchor="end">0° →</text>`);
+  return fitSvg(els, pts, "배치 개략도");
+}
+function fitSvg(els, pts, label, fsScale) {
+  const xs = pts.map(q => q[0]), ys = pts.map(q => q[1]);
+  const pad = 0.12 * Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
+  const vb = [Math.min(...xs) - pad, Math.min(...ys) - pad, Math.max(...xs) - Math.min(...xs) + 2 * pad, Math.max(...ys) - Math.min(...ys) + 2 * pad];
+  const fs = ((fsScale || 0.045) * Math.max(vb[2], vb[3])).toFixed(1);
+  return `<svg viewBox="${vb.map(v => v.toFixed(1)).join(" ")}" role="img" aria-label="${label}">${els.join("").split("{FS}").join(fs)}</svg>`;
+}
+
+// ---------- 인쇄 페이지 ----------
+function pagePlan(p, it) {
+  const [pw, ph] = PAPERS[p.paper], m = 8, head = 13.5, ov = 10;
+  const uw = pw - 2 * m, uh = ph - 2 * m - head;
+  const cols = it.Wt <= uw ? 1 : Math.ceil((it.Wt - ov) / (uw - ov));
+  const rows = it.Ht <= uh ? 1 : Math.ceil((it.Ht - ov) / (uh - ov));
+  return { pw, ph, m, head, ov, uw, uh, cols, rows, it };
+}
+function buildPrint(p, r) {
+  const items = tplItems(p, r), base = pagePlan(p, items[0]);
+  const { pw, ph, m, head, ov, uw, uh } = base, hh = ph - 2 * m - 0.5, bx = uw - 102;
+  $("pagestyle").textContent = `@page { size: ${pw}mm ${ph}mm; margin: ${m}mm; }`;
+  const desc = `Y-Tee | 주관 OD ${f1(p.mainOd)} | 가지관 OD ${f1(p.trOd)} t${p.trT} (${$("contact").selectedOptions[0].text}) | α ${p.angle}° | e ${p.e}`;
+  const bar = `<rect x="${bx}" y="1.5" width="100" height="2.5" fill="none" stroke="#000" stroke-width="0.25"/>` +
+    [0, 2, 4, 6, 8].map(i => `<rect x="${bx + i * 10}" y="1.5" width="10" height="2.5" fill="#000"/>`).join("") +
+    `<text x="${bx + 50}" y="7.8" font-size="2.6" text-anchor="middle">이 막대가 정확히 100 mm인지 확인</text>`;
+  const pages = [], plans = [];
+  items.forEach(it => {
+    const pl = pagePlan(p, it), total = pl.cols * pl.rows;
+    plans.push(pl);
+    let n = 0;
+    for (let ry = 0; ry < pl.rows; ry++) for (let cx = 0; cx < pl.cols; cx++) {
+      n++;
+      const vx = cx * (uw - ov), vy = ry * (uh - ov);
+      let marks = "";
+      if (cx < pl.cols - 1) marks += `<rect x="${vx + uw - ov}" y="${vy}" width="${ov}" height="${uh}" fill="#000" fill-opacity="0.08"/><text transform="translate(${vx + uw - ov / 2 + 1} ${vy + uh / 2}) rotate(-90)" font-size="2.6" text-anchor="middle">겹침 → ${n + 1}번 장</text>`;
+      if (ry < pl.rows - 1) marks += `<rect x="${vx}" y="${vy + uh - ov}" width="${uw}" height="${ov}" fill="#000" fill-opacity="0.08"/><text x="${vx + uw / 2}" y="${vy + uh - ov / 2 + 1}" font-size="2.6" text-anchor="middle">겹침 ↓ ${n + pl.cols}번 장</text>`;
+      pages.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${uw}mm" height="${hh}mm" viewBox="0 0 ${uw} ${hh}" font-family="Malgun Gothic, 맑은 고딕, sans-serif">` +
+        `<rect width="${uw}" height="${hh}" fill="#fff"/>` +
+        `<text x="0" y="4.5" font-size="3.5" font-weight="700">Y-Tee ${it.name} ${n}/${total} (${ry + 1}행 ${cx + 1}열)</text>` +
+        `<text x="0" y="9.5" font-size="2.6">${esc(desc)}</text>${bar}` +
+        `<line x1="0" y1="${head - 1.2}" x2="${uw}" y2="${head - 1.2}" stroke="#000" stroke-width="0.2"/>` +
+        `<svg x="0" y="${head}" width="${uw}" height="${uh}" viewBox="${vx} ${vy} ${uw} ${uh}">${it.inner}${marks}</svg></svg>`);
+    }
+  });
+  $("print").innerHTML = pages.map(s => `<div class="page" style="width:${uw}mm;height:${hh}mm">${s}</div>`).join("");
+  return { pw, ph, m, uw, uh, hh, pages, plans, items, desc };
+}
+
+// ---------- PDF (각 장을 고해상도 이미지로 1:1 배치, 한글 깨짐 없음) ----------
+const LIBS = {
+  pdf: ["https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js", () => window.jspdf],
+  xlsx: ["https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", () => window.XLSX],
+};
+function loadLib(name) {
+  const [src, get] = LIBS[name];
+  if (get()) return Promise.resolve(get());
+  return new Promise((ok, fail) => {
+    const s = document.createElement("script");
+    s.src = src; s.onload = () => get() ? ok(get()) : fail(new Error("load")); s.onerror = () => fail(new Error("load"));
+    document.head.appendChild(s);
+  });
+}
+function svgToPng(svg, wmm, hmm, dpi) {
+  const k = dpi / 25.4, w = Math.round(wmm * k), h = Math.round(hmm * k);
+  return new Promise((ok, fail) => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement("canvas"); c.width = w; c.height = h;
+      const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, w, h); g.drawImage(img, 0, 0, w, h);
+      ok(c.toDataURL("image/png"));
+    };
+    img.onerror = () => fail(new Error("render"));
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  });
+}
+async function savePdf() {
+  const { p, r } = state, pl = buildPrint(p, r);
+  const btn = $("btnPdf"), label = btn.textContent;
+  btn.disabled = true; btn.textContent = "PDF 만드는 중…";
+  try {
+    const { jsPDF } = await loadLib("pdf");
+    const doc = new jsPDF({ unit: "mm", format: [pl.pw, pl.ph], orientation: pl.pw > pl.ph ? "landscape" : "portrait", compress: true });
+    for (let i = 0; i < pl.pages.length; i++) {
+      if (i) doc.addPage([pl.pw, pl.ph], pl.pw > pl.ph ? "landscape" : "portrait");
+      const png = await svgToPng(pl.pages[i], pl.uw, pl.hh, 300);
+      doc.addImage(png, "PNG", pl.m, pl.m, pl.uw, pl.hh, undefined, "FAST");
+    }
+    doc.save(fileStem(p) + ".pdf");
+  } catch (e) {
+    alert("PDF 기능을 불러오지 못했습니다. 인터넷 연결을 확인하거나, [1:1 인쇄]에서 프린터를 'PDF로 저장'으로 골라 저장하세요.");
+  } finally { btn.disabled = false; btn.textContent = label; }
+}
+
+// ---------- Excel ----------
+async function saveXlsx() {
+  const { p, r } = state, pl = buildPrint(p, r), h = r.hole;
+  const info = [
+    ["Y-Tee 현도 계산 결과"], [pl.desc], [],
+    ["가지관 전개 폭 (OD 둘레, mm)", +r.W.toFixed(1)], [`등분 간격 (${p.divs}등분, mm)`, +(r.W / p.divs).toFixed(1)], ["곡선 최대 깊이 (mm)", +r.depth.toFixed(1)],
+    ["H (mm)", p.H],
+    ["최단 컷 길이 (mm)", +r.Lmin.toFixed(1)], ["최장 컷 길이 (mm)", +r.Lmax.toFixed(1)], ["끝면 → 기준선 (mm)", +(r.Lmin - p.G).toFixed(1)],
+    ["주관 구멍 길이 (축방향, mm)", +(h.xmax - h.xmin).toFixed(1)], ["주관 구멍 폭 (원주방향, mm)", +(h.smax - h.smin).toFixed(1)], ["교차점 → 구멍 시작점 (mm)", +h.xmin.toFixed(1)], [],
+    ["번호", "각도 (°)", "둘레 위치 (mm)", "기준선 → 곡선 (mm)", "컷 길이 (mm)", "위치"],
+    ...r.divs.slice(0, -1).map(d => [d.k, +d.deg.toFixed(2), +d.x.toFixed(1), +d.ord.toFixed(1), +d.L.toFixed(1), d.deg % 90 === 0 ? quadName(p, d.deg) : ""]),
+  ];
+  const hole = [["번호", "각도 (°)", "x 교차점 기준 (mm)", "x 구멍 시작점 기준 (mm)", "s 정상선 기준 (mm)"],
+    ...r.divs.slice(0, -1).map(d => [d.k, +d.deg.toFixed(2), +d.hx.toFixed(1), +(d.hx - h.xmin).toFixed(1), +d.hs.toFixed(1)])];
+  const fine = [["각도 (°)", "둘레 위치 (mm)", "기준선 → 곡선 (mm)", "컷 길이 (mm)", "구멍 x 교차점 기준 (mm)", "구멍 s 정상선 기준 (mm)"]];
+  for (let deg = 0; deg < 360; deg++) {
+    const th = deg * Math.PI / 180, t = hitT(p, th), hp = holePt(p, th);
+    fine.push([deg, +(p.rw * th).toFixed(2), +r.ord(t).toFixed(2), +(p.H - t).toFixed(2), +hp.x.toFixed(2), +hp.s.toFixed(2)]);
+  }
+  try {
+    const X = await loadLib("xlsx");
+    const wb = X.utils.book_new();
+    const s1 = X.utils.aoa_to_sheet(info); s1["!cols"] = [{ wch: 26 }, { wch: 12 }, { wch: 15 }, { wch: 18 }, { wch: 14 }, { wch: 18 }];
+    const s2 = X.utils.aoa_to_sheet(hole); s2["!cols"] = [{ wch: 8 }, { wch: 10 }, { wch: 20 }, { wch: 24 }, { wch: 20 }];
+    const s3 = X.utils.aoa_to_sheet(fine); s3["!cols"] = [{ wch: 10 }, { wch: 15 }, { wch: 18 }, { wch: 14 }, { wch: 24 }, { wch: 24 }];
+    X.utils.book_append_sheet(wb, s1, "가지관 치수표");
+    X.utils.book_append_sheet(wb, s2, "주관 구멍 치수표");
+    X.utils.book_append_sheet(wb, s3, "1도 간격 좌표");
+    X.writeFile(wb, fileStem(p) + ".xlsx");
+  } catch (e) {
+    // 인터넷이 안 될 때: 엑셀에서 바로 열리는 CSV로 저장
+    const csv = "﻿" + info.concat([[]], hole, [[]], fine).map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\r\n");
+    download(fileStem(p) + ".csv", csv, "text/csv");
+  }
+}
+
+// ---------- DXF ----------
+function dxf(p, r) {
+  const out = ["0","SECTION","2","HEADER","9","$ACADVER","1","AC1009","9","$INSUNITS","70","4","0","ENDSEC","0","SECTION","2","ENTITIES"];
+  let oy = 0;   // 두 번째 도면을 아래로 내리는 양
+  const Y = y => (-(y + oy)).toFixed(3);
+  const line = (layer, x1, y1, x2, y2) => out.push("0","LINE","8",layer,"10",x1.toFixed(3),"20",Y(y1),"30","0","11",x2.toFixed(3),"21",Y(y2),"31","0");
+  const text = (layer, x, y, h, s, rot) => { out.push("0","TEXT","8",layer,"10",x.toFixed(3),"20",Y(y),"30","0","40",String(h),"1",s); if (rot) out.push("50", String(rot)); };
+  const poly = (layer, pts) => {
+    out.push("0","POLYLINE","8",layer,"66","1","70","0");
+    pts.forEach(q => out.push("0","VERTEX","8",layer,"10",q[0].toFixed(3),"20",Y(q[1]),"30","0"));
+    out.push("0","SEQEND","8",layer);
+  };
+  // 1) 가지관 끝 현도
+  const { x0, top, tab } = TPL, W = r.W, yTop = top - 9;
+  const curve = curvePts(p, r, tab);
+  poly("CUT", curve);
+  line("CUT", x0, yTop, x0 + W + tab, yTop);
+  line("CUT", x0, yTop, x0, curve[0][1]);
+  line("CUT", x0 + W + tab, yTop, x0 + W + tab, curve[curve.length - 1][1]);
+  line("BASE", x0, top, x0 + W + tab, top);
+  line("OVERLAP", x0 + W, yTop, x0 + W, top + r.ord(hitT(p, 0)));
+  if (p.G >= 12) text("TEXT", x0 + 1, top + 7.6, 2.2, "BASE LINE");
+  const sp = W / p.divs;
+  for (let k = 0; k < p.divs; k++) {
+    line("DIM", x0 + k * sp + 0.4, top - 1.2, x0 + (k + 1) * sp - 0.4, top - 1.2);
+    if (sp >= 7 || k === 0) text("TEXT", x0 + (k + 0.5) * sp - 2.5, top - 1.9, 2.2, (sp >= 7 ? "" : "PITCH ") + f1(sp));
+  }
+  r.divs.forEach(d => {
+    const x = x0 + d.x;
+    line("GEN", x, yTop, x, top + d.ord);
+    text("TEXT", x + 0.8, yTop + 3, 2.6, String(d.k === p.divs ? 0 : d.k));
+    if (d.k < p.divs) text("TEXT", x - 0.8, top + Math.min(d.ord - 2, Math.max(8, d.ord / 2 + 3)), 2.4, f1(d.ord), 90);
+  });
+  // 2) 주관 구멍 현도 (가지관 현도 아래에 배치)
+  oy = templateGeom(p, r).Ht + 20;
+  const h = r.hole, { mx, my } = HM, g = holeGeom(p, r);
+  const HX = x => mx + (x - h.xmin), HY = s => my + (s - h.smin);
+  poly("CUT", h.pts.map(c => [HX(c.x), HY(c.s)]));
+  line("BASE", 2, HY(0), g.Wt - 2, HY(0));
+  text("TEXT", 2.5, HY(0) - 3.4, 2.4, "CENTER LINE");
+  if (HX(0) > 8 && HX(0) < g.Wt - 8) { line("BASE", HX(0), 12, HX(0), g.Ht - 2); text("TEXT", HX(0) + 1, 15.9, 2.4, "AXIS X=0"); }
+  r.divs.slice(0, -1).forEach(d => text("TEXT", HX(d.hx) + 1.2, HY(d.hs) - 1.2, 2.6, String(d.k)));
+  out.push("0","ENDSEC","0","EOF");
+  return out.join("\r\n");
+}
+function download(name, data, type) {
+  const url = URL.createObjectURL(new Blob([data], { type }));
+  const a = document.createElement("a"); a.href = url; a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+}
+function fileStem(p) { return `ytee_${f1(p.mainOd)}x${f1(p.trOd)}_a${p.angle}`.replace(/\./g, "_"); }
+
+// ---------- 화면 ----------
+let state = null;
+function render() {
+  save();
+  const p = readParams(), r = compute(p);
+  state = { p, r };
+  $("msgs").innerHTML = r.errors.map(m => `<div class="msg bad">${esc(m)}</div>`).join("") + r.warns.map(m => `<div class="msg warn">${esc(m)}</div>`).join("");
+  const ok = !r.errors.length;
+  ["btnPrint","btnPdf","btnXlsx","btnDxf","btnSvg"].forEach(id => $(id).disabled = !ok);
+  if (!ok) { ["kpis","schem","preview","preview2","tbl","tbl2"].forEach(id => $(id).innerHTML = ""); $("pageInfo").textContent = ""; return; }
+
+  const pl = buildPrint(p, r), h = r.hole;
+  state.items = pl.items;
+  const kp = [
+    [f1(r.W), "가지관 전개 폭 (OD 둘레)"],
+    [f1(r.W / p.divs), `등분 간격 (${p.divs}등분)`],
+    [f1(r.depth), "가지관 곡선 최대 깊이"],
+    [f1(r.Lmin), "가지관 최단 컷 길이"],
+    [f1(r.Lmax), "가지관 최장 컷 길이"],
+    [f1(r.Lmin - p.G), "끝면 → 기준선"],
+    [f1(h.xmax - h.xmin), "주관 구멍 길이 (축방향)"],
+    [f1(h.smax - h.smin), "주관 구멍 폭 (원주방향)"],
+    [f1(h.xmin), "교차점 → 구멍 시작점"],
+  ];
+  $("kpis").innerHTML = kp.map(k => `<div class="kpi"><b>${k[0]}</b><span>${k[1]}</span></div>`).join("");
+  $("schem").innerHTML = schemSvg(p, r);
+  $("preview").innerHTML = tplSvg(pl.items[0], false);
+  $("preview2").innerHTML = tplSvg(pl.items[1], false);
+  $("pageInfo").textContent = `${PAPERS[p.paper][2]}: ` + pl.plans.map(q => `${q.it.name} ${q.cols * q.rows}장 (${q.cols}열 × ${q.rows}행, ${f1(q.it.Wt)} × ${f1(q.it.Ht)} mm)`).join(" / ");
+  let t = `<thead><tr><th class="l">번호</th><th>각도</th><th>둘레 위치</th><th>기준선 → 곡선</th><th>컷 길이 (끝면 기준)</th><th class="l">위치</th></tr></thead><tbody>`;
+  r.divs.slice(0, -1).forEach(d => {
+    t += `<tr><td class="l">${d.k}</td><td>${f1(d.deg)}°</td><td>${f1(d.x)}</td><td>${f1(d.ord)}</td><td>${f1(d.L)}</td><td class="l">${d.deg % 90 === 0 ? esc(quadName(p, d.deg)) : ""}</td></tr>`;
+  });
+  $("tbl").innerHTML = t + "</tbody>";
+  let t2 = `<thead><tr><th class="l">번호</th><th>각도</th><th>x (교차점 기준)</th><th>x (구멍 시작점 기준)</th><th>s (정상선 기준)</th></tr></thead><tbody>`;
+  r.divs.slice(0, -1).forEach(d => {
+    t2 += `<tr><td class="l">${d.k}</td><td>${f1(d.deg)}°</td><td>${f1(d.hx)}</td><td>${f1(d.hx - h.xmin)}</td><td>${f1(d.hs)}</td></tr>`;
+  });
+  $("tbl2").innerHTML = t2 + "</tbody>";
+}
+
+// ---------- 저장/복원 ----------
+function save() {
+  try {
+    const o = {};
+    FIELDS.forEach(k => o[k] = $(k).value);
+    localStorage.setItem("ytee-template", JSON.stringify(o));
+  } catch (e) { /* 저장 불가 환경 */ }
+}
+function load() {
+  let o = DEF;
+  try { const s = localStorage.getItem("ytee-template"); if (s) o = Object.assign({}, DEF, JSON.parse(s)); } catch (e) { /* 기본값 사용 */ }
+  FIELDS.forEach(k => { if (o[k] !== undefined) $(k).value = o[k]; });
+  if (!$("contact").value) $("contact").value = DEF.contact; // 예전에 저장된 '두께 중심' 값 보정
+  if (!$("paper").value) $("paper").value = DEF.paper;       // 예전에 저장된 'A4 세로' 값 보정
+}
+
+$("mainNps").addEventListener("change", () => { const n = npsOf($("mainNps").value); if (n) $("mainOd").value = n[1]; render(); });
+$("trNps").addEventListener("change", () => { const n = npsOf($("trNps").value); if (n) { $("trOd").value = n[1]; $("trT").value = n[2]; } render(); });
+$("mainOd").addEventListener("input", () => { const n = npsOf($("mainNps").value); if (n && Math.abs(n[1] - parseFloat($("mainOd").value)) > 0.05) $("mainNps").value = "custom"; });
+$("trOd").addEventListener("input", () => { const n = npsOf($("trNps").value); if (n && Math.abs(n[1] - parseFloat($("trOd").value)) > 0.05) $("trNps").value = "custom"; });
+$("f").addEventListener("input", render);
+$("f").addEventListener("change", render);
+$("f").addEventListener("submit", e => e.preventDefault());
+$("btnReset").addEventListener("click", () => {
+  try { localStorage.removeItem("ytee-template"); } catch (e) { /* 저장 불가 환경 */ }
+  load(); render();
+});
+
+// ---------- 현도 확대 보기 ----------
+let zoom = 1;
+function setZoom(z, keepCenter) {
+  const v = $("zview"), svg = v.querySelector("svg");
+  if (!svg) return;
+  const cx = (v.scrollLeft + v.clientWidth / 2) / v.scrollWidth, cy = (v.scrollTop + v.clientHeight / 2) / v.scrollHeight;
+  zoom = Math.min(8, Math.max(1, z));
+  const vb = svg.viewBox.baseVal, base = Math.min(v.clientWidth, v.clientHeight * vb.width / vb.height);
+  svg.style.width = (base * zoom) + "px";
+  $("zLevel").textContent = Math.round(zoom * 100) + "%";
+  if (keepCenter) { v.scrollLeft = cx * v.scrollWidth - v.clientWidth / 2; v.scrollTop = cy * v.scrollHeight - v.clientHeight / 2; }
+}
+// 지정한 화면 좌표(cx, cy)를 고정한 채 확대/축소
+function zoomAt(z, cx, cy) {
+  const v = $("zview"), r = v.getBoundingClientRect();
+  const fx = (v.scrollLeft + cx - r.left) / v.scrollWidth, fy = (v.scrollTop + cy - r.top) / v.scrollHeight;
+  setZoom(z, false);
+  v.scrollLeft = fx * v.scrollWidth - (cx - r.left);
+  v.scrollTop = fy * v.scrollHeight - (cy - r.top);
+}
+function openZoom(idx) {
+  if (!state || state.r.errors.length) return;
+  const it = state.items[idx];
+  $("zTitle").textContent = it.name + " 확대";
+  $("zview").innerHTML = tplSvg(it, false);
+  $("zoomDlg").showModal();
+  setZoom(1, false);
+}
+[["preview", 0], ["preview2", 1]].forEach(([id, idx]) => {
+  $(id).addEventListener("click", () => openZoom(idx));
+  $(id).addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openZoom(idx); } });
+});
+$("zIn").addEventListener("click", () => setZoom(zoom * 1.5, true));
+$("zOut").addEventListener("click", () => setZoom(zoom / 1.5, true));
+$("zFit").addEventListener("click", () => setZoom(1, true));
+$("zClose").addEventListener("click", () => $("zoomDlg").close());
+$("zoomDlg").addEventListener("click", e => { if (e.target === $("zoomDlg")) $("zoomDlg").close(); });
+$("zview").addEventListener("wheel", e => { if (e.ctrlKey) { e.preventDefault(); zoomAt(Math.min(8, Math.max(1, zoom * (e.deltaY < 0 ? 1.2 : 1 / 1.2))), e.clientX, e.clientY); } }, { passive: false });
+$("zview").addEventListener("dblclick", e => { if (e.pointerType !== "touch") zoomAt(zoom >= 8 ? 1 : zoom * 2, e.clientX, e.clientY); });
+window.addEventListener("resize", () => { if ($("zoomDlg").open) setZoom(zoom, true); });
+{ // 한 손가락/마우스 끌어서 이동, 두 손가락 핀치 줌, 두 번 탭하면 확대
+  const v = $("zview"), ptrs = new Map();
+  let pan = null, pinch = null, lastTap = 0;
+  const startPan = e => { pan = { x: e.clientX, y: e.clientY, l: v.scrollLeft, t: v.scrollTop }; };
+  const mid = () => { const [a, b] = [...ptrs.values()]; return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, d: Math.hypot(a.x - b.x, a.y - b.y) || 1 }; };
+  v.addEventListener("pointerdown", e => {
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    v.setPointerCapture(e.pointerId);
+    if (ptrs.size === 1) { startPan(e); v.classList.add("drag"); }
+    else if (ptrs.size === 2) { pan = null; pinch = { d: mid().d, z: zoom }; }
+  });
+  v.addEventListener("pointermove", e => {
+    if (!ptrs.has(e.pointerId)) return;
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (ptrs.size >= 2 && pinch) { const m = mid(); zoomAt(pinch.z * m.d / pinch.d, m.x, m.y); }
+    else if (pan) { v.scrollLeft = pan.l - (e.clientX - pan.x); v.scrollTop = pan.t - (e.clientY - pan.y); }
+  });
+  const end = e => {
+    const had = ptrs.delete(e.pointerId);
+    if (ptrs.size < 2) pinch = null;
+    if (ptrs.size === 1) { const q = [...ptrs.values()][0]; startPan({ clientX: q.x, clientY: q.y }); }
+    if (!ptrs.size) {
+      pan = null; v.classList.remove("drag");
+      // 터치 두 번 탭: 확대 (모바일 사파리는 dblclick이 불안정)
+      if (had && e.type === "pointerup" && e.pointerType === "touch") {
+        const now = Date.now();
+        if (now - lastTap < 300) { zoomAt(zoom >= 4 ? 1 : zoom * 2, e.clientX, e.clientY); lastTap = 0; } else lastTap = now;
+      }
+    }
+  };
+  v.addEventListener("pointerup", end); v.addEventListener("pointercancel", end);
+}
+$("btnPdf").addEventListener("click", () => { if (state && !state.r.errors.length) savePdf(); });
+$("btnXlsx").addEventListener("click", () => { if (state && !state.r.errors.length) saveXlsx(); });
+$("btnPrint").addEventListener("click", () => { if (state && !state.r.errors.length) window.print(); });
+$("btnDxf").addEventListener("click", () => { if (state && !state.r.errors.length) download(fileStem(state.p) + ".dxf", dxf(state.p, state.r), "application/dxf"); });
+$("btnSvg").addEventListener("click", () => {
+  if (!state || state.r.errors.length) return;
+  const { p } = state;
+  state.items.forEach((it, i) => setTimeout(() => download(`${fileStem(p)}_${it.key}.svg`, tplSvg(it, true), "image/svg+xml"), i * 400));
+});
+
+load(); render();
+</script>
+</body>
+</html>

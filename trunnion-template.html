@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>트러니언 현도 계산기</title>
+<title>현도 계산기</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap">
 <style id="pagestyle">@page { size: 297mm 210mm; margin: 8mm; }</style>
@@ -47,6 +47,9 @@ body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--f-body); p
 header.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; margin-bottom: 16px; }
 h1 { font-size: 22px; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
 .sub { color: var(--muted); font-size: 13px; }
+.xlink { margin-left: auto; align-self: center; font: 600 13px var(--f-body); color: var(--accent); text-decoration: none; border: 1px solid var(--accent); border-radius: 6px; padding: 6px 12px; background: var(--panel); white-space: nowrap; }
+.xlink:hover { background: var(--accent-soft); }
+.xlink:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .grid { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 16px; align-items: start; }
 @media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; min-width: 0; }
@@ -156,23 +159,24 @@ td.l, th.l { text-align: left; font-family: var(--f-body); }
 </noscript>
 <div class="wrap">
   <header class="top">
-    <h1>트러니언 현도 계산기</h1>
+    <h1>현도 계산기</h1>
     <span class="sub">파이프 위 트러니언(원형 서포트)의 맞닿는 면을 전개해 1:1 템플릿으로 출력합니다. 단위 mm</span>
+    <a class="xlink" href="y-tee.html">Y-Tee 현도 계산기 →</a>
   </header>
 
   <div class="grid">
     <form class="card" id="f" autocomplete="off">
       <div class="seg" role="radiogroup" aria-label="주관 형태">
-        <label><input type="radio" name="mode" id="mStraight" value="straight" checked><span>직관 위</span></label>
-        <label><input type="radio" name="mode" id="mElbow" value="elbow"><span>더미 레그 (수직)</span></label>
+        <label><input type="radio" name="mode" id="mStraight" value="straight" checked><span>직관 트러니언</span></label>
+        <label><input type="radio" name="mode" id="mElbow" value="elbow"><span>엘보 트러니언 (수직)</span></label>
         <label><input type="radio" name="mode" id="mElbowH" value="elbowH"><span>수평 엘보 트러니언</span></label>
       </div>
 
       <fieldset>
         <legend>주관 (붙일 대상 배관)</legend>
         <div class="row">
-          <label>호칭경 <select id="mainNps"></select></label>
-          <label>OD <input id="mainOd" type="number" step="0.1" min="1"></label>
+          <label>인치 <select id="mainNps"></select></label>
+          <label>OD(배관외경) <input id="mainOd" type="number" step="0.1" min="1"></label>
         </div>
         <div class="row" data-elbow>
           <label>엘보 종류
@@ -191,15 +195,14 @@ td.l, th.l { text-align: left; font-family: var(--f-body); }
       <fieldset>
         <legend>트러니언</legend>
         <div class="row">
-          <label>호칭경 <select id="trNps"></select></label>
-          <label>OD <input id="trOd" type="number" step="0.1" min="1"></label>
+          <label>인치 <select id="trNps"></select></label>
+          <label>OD(배관외경) <input id="trOd" type="number" step="0.1" min="1"></label>
         </div>
         <div class="row">
           <label>두께 <input id="trT" type="number" step="0.01" min="0"></label>
           <label>윤곽 기준
             <select id="contact">
               <option value="id">ID (셋온, 권장)</option>
-              <option value="mean">두께 중심</option>
               <option value="od">OD</option>
             </select>
           </label>
@@ -227,14 +230,18 @@ td.l, th.l { text-align: left; font-family: var(--f-body); }
             <option value="outside">아웃사이드 라인 (바깥 면 맞춤)</option>
           </select>
         </label>
-        <p class="hint" data-straight>α = 주관 축과 트러니언 축 사이 각도 (직교 = 90). e = 두 축 사이 거리 (동심 = 0).</p>
+        <p class="hint" data-straight>α = 주관 축과 트러니언 축 사이 각도 (직교 = 90). e = 두 축 사이 거리 (동심 = 0). H는 트러니언 축을 따라, 축이 주관 외경(OD) 면과 만나는 점에서 트러니언 끝단까지 잰 길이입니다.</p>
         <p class="hint" data-eh>BOP 맞춤: 트러니언 바닥을 배관 BOP와 같은 높이로 내려 같은 철골 위에 얹습니다. 평면 정렬은 들어오는 배관 축 기준이며 보통 센터라인입니다.</p>
         <p class="hint" data-ev>수직 배관을 기준으로 맞춥니다. 인사이드는 엘보 안쪽(수평 배관 쪽) 면, 아웃사이드는 엘보 등(배면) 쪽 면을 트러니언 OD 면과 일직선으로 맞춥니다.</p>
-        <div class="row">
-          <label><span data-straight>H: 주관 중심 → 트러니언 끝</span><span data-ev>H: 수평 배관 중심 → 트러니언 끝</span><span data-eh>H: 꺾인 배관 중심 → 트러니언 끝 (L+M)</span>
-            <input id="height" type="number" step="1" min="0"></label>
-          <label>기준선 여유 G <input id="gap" type="number" step="1" min="5"></label>
-        </div>
+        <label data-elbow>H 입력 기준
+          <select id="hRef">
+            <option value="center">주관 중심점에서의 거리</option>
+            <option value="bop">주관 BOP에서의 거리</option>
+          </select>
+        </label>
+        <p class="hint" data-elbow>BOP 기준은 트러니언 끝 쪽 주관 외경 면(중심에서 OD/2)에서 트러니언 끝단까지 잰 값입니다.</p>
+        <label><span data-straight>H: 주관 외경 끝 → 트러니언 끝</span><span data-elbow>H: 선택한 기준 → 트러니언 끝</span>
+          <input id="height" type="number" step="1" min="0"></label>
       </fieldset>
 
       <fieldset>
@@ -248,7 +255,6 @@ td.l, th.l { text-align: left; font-family: var(--f-body); }
           <label>용지
             <select id="paper">
               <option value="A4L">A4 가로</option>
-              <option value="A4P">A4 세로</option>
               <option value="A3L">A3 가로</option>
             </select>
           </label>
@@ -324,11 +330,11 @@ const NPS = [
 ];
 const PAPERS = { A4L: [297, 210, "A4 가로"], A4P: [210, 297, "A4 세로"], A3L: [420, 297, "A3 가로"] };
 const DEF = { mode: "straight", mainNps: "6\"", mainOd: 168.3, rbType: "LR", rb: 228.6, trNps: "4\"", trOd: 114.3, trT: 6.02,
-  contact: "id", angle: 90, offE: 0, align: "center", alignH: "bottom", height: 300, gap: 30, divs: "16", paper: "A4L" };
+  contact: "id", angle: 90, offE: 0, align: "center", alignH: "bottom", hRef: "center", height: 200, divs: "16", paper: "A4L" };
 const ALIGN = { center: "센터라인", inside: "인사이드 라인", outside: "아웃사이드 라인" };
 const ALIGN_H = { bottom: [-1, "BOP 맞춤"], center: [0, "센터라인"], top: [1, "TOP 맞춤"] };
 const $ = id => document.getElementById(id);
-const FIELDS = ["mainNps","mainOd","rbType","rb","trNps","trOd","trT","contact","angle","offE","align","alignH","height","gap","divs","paper"];
+const FIELDS = ["mainNps","mainOd","rbType","rb","trNps","trOd","trT","contact","angle","offE","align","alignH","hRef","height","divs","paper"];
 const f1 = v => (Math.round(v * 10) / 10).toFixed(1);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
@@ -354,14 +360,17 @@ function readParams() {
   const n = id => parseFloat($(id).value);
   const p = { mode, horiz, mainOd: n("mainOd"), rb: n("rb"), trOd: n("trOd"), trT: n("trT"), contact: $("contact").value,
     angle: n("angle"), e: mode === "straight" ? n("offE") : 0, align: $("align").value,
-    H: n("height"), G: n("gap"), divs: parseInt($("divs").value, 10), paper: $("paper").value };
+    H: n("height"), G: 30 /* 기준선 여유 (고정) */, divs: parseInt($("divs").value, 10), paper: $("paper").value };
   p.R = p.mainOd / 2;
   p.rw = p.trOd / 2;
   // 정렬은 트러니언 OD 면을 주관 OD 면과 일직선으로 맞춤
   const side = Math.max(0, p.R - p.rw);
   p.a = p.align === "outside" ? side : p.align === "inside" ? -side : 0;
   if (horiz) p.e = ALIGN_H[$("alignH").value][0] * side;
-  p.rc = p.contact === "id" ? (p.trOd - 2 * p.trT) / 2 : p.contact === "mean" ? (p.trOd - p.trT) / 2 : p.trOd / 2;
+  // 직관: H는 주관 OD 면에서 잰 값이므로, 계산용 Hc = 주관 중심 기준 값으로 환산
+  p.hBasis = mode === "straight" ? "주관 OD 끝" : $("hRef").value === "bop" ? "주관 BOP" : "주관 중심";
+  p.Hc = mode === "straight" ? p.H + Math.sqrt(Math.max(0, p.R * p.R - p.e * p.e)) / Math.sin(p.angle * Math.PI / 180) : p.H + ($("hRef").value === "bop" ? p.R : 0);
+  p.rc = p.contact === "id" ? (p.trOd - 2 * p.trT) / 2 : p.trOd / 2;
   return p;
 }
 
@@ -416,7 +425,7 @@ function compute(p) {
   }
 
   const tmax = Math.max(...fine.map(q => q.t)), tmin = Math.min(...fine.map(q => q.t));
-  const Href = p.mode === "straight" ? p.H : p.rb + p.H;
+  const Href = p.mode === "straight" ? p.Hc : p.rb + p.Hc;
   const ord = t => p.G + (tmax - t);
   const W = 2 * Math.PI * p.rw;
   const divs = [];
@@ -425,7 +434,7 @@ function compute(p) {
     divs.push({ k, deg: 360 * k / p.divs, x: p.rw * th, ord: ord(t), L: Href - t });
   }
   const Lmin = Href - tmax, Lmax = Href - tmin;
-  if (p.H > 0 && Lmin - p.G < 0) warns.push("기준선이 트러니언 끝면보다 바깥에 놓입니다. H를 늘리거나 기준선 여유 G를 줄이세요.");
+  if (p.H > 0 && Lmin - p.G < 0) warns.push("기준선이 트러니언 끝면보다 바깥에 놓입니다. H를 늘리세요.");
   if (p.H > 0 && Lmin <= 0) errors.push("H가 너무 짧아 트러니언이 주관과 겹칩니다. H를 늘리세요.");
   return { errors, warns, fine, divs, tmax, tmin, depth: tmax - tmin, W, ord, Lmin, Lmax, Href };
 }
@@ -510,32 +519,33 @@ function schemSvg(p, r) {
   if (p.mode === "straight") {
     const al = p.angle * Math.PI / 180, dx = Math.cos(al), dz = Math.sin(al);
     const ux = -Math.sin(al), uz = Math.cos(al);
-    const P = (t, k) => [t * dx + k * ux, -(t * dz + k * uz)];
-    const span = Math.max(2.2 * p.R, Math.abs(p.H * dx) + p.rw + p.R);
+    // 개략도는 180° 회전: 트러니언이 주관 아래로 향함
+    const P = (t, k) => [-(t * dx + k * ux), t * dz + k * uz];
+    const span = Math.max(2.2 * p.R, Math.abs(p.Hc * dx) + p.rw + p.R);
     const curve = [];
     for (let i = 0; i <= 90; i++) { const th = Math.PI * i / 90; curve.push(P(hitT(p, th), p.rc * Math.cos(th))); }
-    const e0 = P(p.H, p.rc), e1 = P(p.H, -p.rc);
+    const e0 = P(p.Hc, p.rc), e1 = P(p.Hc, -p.rc);
     const poly = [e0, ...curve, e1];
     poly.forEach(q => add(...q));
     els.push(`<polygon class="trn" points="${poly.map(q => q.map(v => v.toFixed(1)).join(",")).join(" ")}"/>`);
     els.push(`<rect class="pipe" x="${-span}" y="${-p.R}" width="${2 * span}" height="${2 * p.R}"/>`);
     add(-span, -p.R); add(span, p.R);
     els.push(`<line class="cl" x1="${-span - 10}" y1="0" x2="${span + 10}" y2="0"/>`);
-    const c = P(p.H + 15, 0);
+    const c = P(p.Hc + 15, 0);
     els.push(`<line class="cl" x1="0" y1="0" x2="${c[0].toFixed(1)}" y2="${c[1].toFixed(1)}"/>`);
     add(...c);
-    const lbl = P(p.H * 0.75, -(p.rw + 0.12 * p.R));
-    els.push(`<text x="${lbl[0].toFixed(1)}" y="${lbl[1].toFixed(1)}" font-size="{FS}">H ${f1(p.H)}</text>`);
+    const lbl = P(p.Hc * 0.75, -(p.rw + 0.12 * p.R));
+    els.push(`<text x="${lbl[0].toFixed(1)}" y="${lbl[1].toFixed(1)}" font-size="{FS}" text-anchor="end">H ${f1(p.H)}</text>`);
     const a0 = P(-p.rc * 0, 0);
-    if (p.angle < 89.99) els.push(`<text x="${(0.6 * p.R).toFixed(1)}" y="${(-1.15 * p.R).toFixed(1)}" font-size="{FS}">α ${p.angle}°</text>`);
-    const z0 = P(hitT(p, 0) + 0.25 * (p.H - hitT(p, 0)), p.rw + 0.05 * p.R);
-    els.push(`<text x="${z0[0].toFixed(1)}" y="${z0[1].toFixed(1)}" font-size="{FS}" text-anchor="end">0° →</text>`);
+    if (p.angle < 89.99) els.push(`<text x="${(-0.6 * p.R).toFixed(1)}" y="${(1.15 * p.R).toFixed(1)}" font-size="{FS}" text-anchor="end">α ${p.angle}°</text>`);
+    const z0 = P(hitT(p, 0) + 0.25 * (p.Hc - hitT(p, 0)), p.rw + 0.05 * p.R);
+    els.push(`<text x="${z0[0].toFixed(1)}" y="${z0[1].toFixed(1)}" font-size="{FS}">← 0°</text>`);
     void a0;
   } else {
     const Rb = p.rb, R = p.R, Lg = Math.max(0.8 * Rb, 1.6 * R);
     const curve = [];
     for (let i = 0; i <= 90; i++) { const th = Math.PI * i / 90; curve.push([Rb + p.a + p.rc * Math.cos(th), hitT(p, th)]); }
-    const yEnd = Rb + p.H;
+    const yEnd = Rb + p.Hc;
     const poly = [[Rb + p.a + p.rc, yEnd], ...curve, [Rb + p.a - p.rc, yEnd]];
     poly.forEach(q => add(...q));
     // 수평 더미는 90° 엘보가 y=x 선에 대칭이므로 수직 더미 그림을 대칭 이동해서 그림
@@ -548,11 +558,17 @@ function schemSvg(p, r) {
     geo.push(`<path class="cl" d="M${Rb} ${-Lg - 10}L${Rb} 0A${Rb} ${Rb} 0 0 1 0 ${Rb}L${-Lg - 10} ${Rb}"/>`);
     geo.push(`<line class="cl" x1="${Rb + p.a}" y1="${Rb * 0.4}" x2="${Rb + p.a}" y2="${yEnd + 15}"/>`);
     const dx = Rb + p.a + p.rw + 0.35 * R;
-    geo.push(`<line class="dim" x1="${dx}" y1="${Rb}" x2="${dx}" y2="${yEnd}"/>`);
-    geo.push(`<line class="dim" x1="${dx - 0.15 * R}" y1="${Rb}" x2="${dx + 0.15 * R}" y2="${Rb}"/>`);
+    const yRef = $("hRef").value === "bop" ? Rb + R : Rb;   // H를 재는 시작 위치 (중심 또는 BOP)
+    geo.push(`<line class="dim" x1="${dx}" y1="${yRef}" x2="${dx}" y2="${yEnd}"/>`);
+    geo.push(`<line class="dim" x1="${dx - 0.15 * R}" y1="${yRef}" x2="${dx + 0.15 * R}" y2="${yRef}"/>`);
     geo.push(`<line class="dim" x1="${dx - 0.15 * R}" y1="${yEnd}" x2="${dx + 0.15 * R}" y2="${yEnd}"/>`);
     geo.push(`<line class="cl" x1="0" y1="${Rb}" x2="${dx + 0.2 * R}" y2="${Rb}"/>`);
+    if (yRef !== Rb) geo.push(`<line class="dim" x1="0" y1="${yRef}" x2="${dx + 0.2 * R}" y2="${yRef}" stroke-dasharray="4 3"/>`);
     els.push(p.horiz ? `<g transform="matrix(0 1 1 0 0 0)">${geo.join("")}</g>` : geo.join(""));
+    if (!p.horiz) {   // 수평 배관의 중심선(COP)과 아래선(BOP) 표기
+      els.push(`<text x="${(-Lg).toFixed(1)}" y="${(Rb - 0.12 * R).toFixed(1)}" font-size="{FS}">COP</text>`);
+      els.push(`<text x="${(-Lg).toFixed(1)}" y="${(Rb + 1.45 * R).toFixed(1)}" font-size="{FS}">BOP</text>`);
+    }
     const hl = T(dx + 0.2 * R, (Rb + yEnd) / 2), zl = T(Rb + p.a + p.rw + 0.05 * R, yEnd - 0.2 * R);
     els.push(`<text x="${hl[0]}" y="${p.horiz ? hl[1] + 0.3 * R : hl[1]}" font-size="{FS}" ${p.horiz ? 'text-anchor="middle"' : ""}>H ${f1(p.H)}</text>`);
     els.push(p.horiz
@@ -574,7 +590,7 @@ function fitSvg(els, pts, label, fsScale) {
 }
 // 수평 엘보 트러니언 입면: X = 트러니언 축 방향, 화면 Y = 아래(+) (z는 위가 +)
 function elevSvg(p) {
-  const Rb = p.rb, R = p.R, Lg = Math.max(0.8 * Rb, 1.6 * R), xEnd = Rb + p.H;
+  const Rb = p.rb, R = p.R, Lg = Math.max(0.8 * Rb, 1.6 * R), xEnd = Rb + p.Hc;
   const els = [], pts = [[-Lg, -R], [xEnd + 15, R + 0.6 * R]];
   els.push(`<path class="pipe" d="M${-Lg} ${-R}H${Rb}A${R} ${R} 0 0 1 ${Rb} ${R}H${-Lg}Z"/>`);
   els.push(`<circle class="pipe" cx="${Rb}" cy="0" r="${R}"/>`);
@@ -585,7 +601,7 @@ function elevSvg(p) {
   els.push(`<line class="cl" x1="${-Lg - 10}" y1="0" x2="${Rb + R + 10}" y2="0"/>`);
   els.push(`<line class="cl" x1="${Rb - R}" y1="${-p.e}" x2="${xEnd + 15}" y2="${-p.e}"/>`);
   els.push(`<line class="dim" x1="${-Lg}" y1="${R}" x2="${xEnd + 15}" y2="${R}" stroke-dasharray="4 3"/>`);
-  els.push(`<text x="${-Lg}" y="${-0.15 * R}" font-size="{FS}">℄PIPE</text>`);
+  els.push(`<text x="${-Lg}" y="${-0.15 * R}" font-size="{FS}">COP</text>`);
   els.push(`<text x="${xEnd + 15}" y="${-p.e - 0.15 * R}" font-size="{FS}" text-anchor="end">℄TRUNNION</text>`);
   els.push(`<text x="${xEnd + 15}" y="${R + 0.45 * R}" font-size="{FS}" text-anchor="end">BOP</text>`);
   return fitSvg(els, pts, "입면 개략도", 0.035);
@@ -605,9 +621,10 @@ function buildPrint(p, r) {
   $("pagestyle").textContent = `@page { size: ${pl.pw}mm ${pl.ph}mm; margin: ${pl.m}mm; }`;
   const inner = templateSvgInner(p, r);
   const total = pl.cols * pl.rows;
-  const desc = p.mode === "straight"
+  const desc = (p.mode === "straight"
     ? `직관 | 주관 OD ${f1(p.mainOd)} | 트러니언 OD ${f1(p.trOd)} t${p.trT} (${$("contact").selectedOptions[0].text}) | α ${p.angle}° | e ${p.e}`
-    : `${p.horiz ? "수평 엘보 트러니언" : "더미 레그(수직)"} | 주관 OD ${f1(p.mainOd)} R${f1(p.rb)} | 트러니언 OD ${f1(p.trOd)} t${p.trT} (${$("contact").selectedOptions[0].text}) | ${p.horiz ? `평면 ${ALIGN[p.align]} / 입면 ${ALIGN_H[$("alignH").value][1]}` : `${ALIGN[p.align]} 정렬`}`;
+    : `${p.horiz ? "수평 엘보 트러니언" : "더미 레그(수직)"} | 주관 OD ${f1(p.mainOd)} R${f1(p.rb)} | 트러니언 OD ${f1(p.trOd)} t${p.trT} (${$("contact").selectedOptions[0].text}) | ${p.horiz ? `평면 ${ALIGN[p.align]} / 입면 ${ALIGN_H[$("alignH").value][1]}` : `${ALIGN[p.align]} 정렬`}`)
+    + ` | H ${p.H} (${p.hBasis} 기준)`;
   // 각 장은 머리글·100mm 눈금·템플릿 조각을 담은 하나의 SVG (인쇄와 PDF가 같은 것을 씀)
   const hh = pl.ph - 2 * pl.m - 0.5, bx = pl.uw - 102;
   const bar = `<rect x="${bx}" y="1.5" width="100" height="2.5" fill="none" stroke="#000" stroke-width="0.25"/>` +
@@ -684,7 +701,7 @@ async function saveXlsx() {
   const info = [
     ["트러니언 현도 계산 결과"], [pl.desc], [],
     ["전개 폭 (OD 둘레, mm)", +r.W.toFixed(1)], [`등분 간격 (${p.divs}등분, mm)`, +(r.W / p.divs).toFixed(1)],["곡선 최대 깊이 (mm)", +r.depth.toFixed(1)],
-    ["H (mm)", p.H], ["기준선 여유 G (mm)", p.G],
+    [`H (mm, ${p.hBasis} 기준)`, p.H],
     ["최단 컷 길이 (mm)", +r.Lmin.toFixed(1)], ["최장 컷 길이 (mm)", +r.Lmax.toFixed(1)], ["끝면 → 기준선 (mm)", +(r.Lmin - p.G).toFixed(1)], [],
     ["번호", "각도 (°)", "둘레 위치 (mm)", "기준선 → 곡선 (mm)", "컷 길이 (mm)", "위치"],
     ...r.divs.slice(0, -1).map(d => [d.k, +d.deg.toFixed(2), +d.x.toFixed(1), +d.ord.toFixed(1), +d.L.toFixed(1), d.deg % 90 === 0 ? quadName(p, d.deg) : ""]),
@@ -795,6 +812,8 @@ function load() {
   let o = DEF;
   try { const s = localStorage.getItem("trunnion-template"); if (s) o = Object.assign({}, DEF, JSON.parse(s)); } catch (e) { /* 기본값 사용 */ }
   FIELDS.forEach(k => { if (o[k] !== undefined) $(k).value = o[k]; });
+  if (!$("contact").value) $("contact").value = DEF.contact; // 예전에 저장된 '두께 중심' 값 보정
+  if (!$("paper").value) $("paper").value = DEF.paper;       // 예전에 저장된 'A4 세로' 값 보정
   (o.mode === "elbow" ? $("mElbow") : o.mode === "elbowH" ? $("mElbowH") : $("mStraight")).checked = true;
 }
 
@@ -840,14 +859,47 @@ $("zOut").addEventListener("click", () => setZoom(zoom / 1.5, true));
 $("zFit").addEventListener("click", () => setZoom(1, true));
 $("zClose").addEventListener("click", () => $("zoomDlg").close());
 $("zoomDlg").addEventListener("click", e => { if (e.target === $("zoomDlg")) $("zoomDlg").close(); });
-$("zview").addEventListener("wheel", e => { if (e.ctrlKey) { e.preventDefault(); setZoom(zoom * (e.deltaY < 0 ? 1.2 : 1 / 1.2), true); } }, { passive: false });
-$("zview").addEventListener("dblclick", () => setZoom(zoom >= 8 ? 1 : zoom * 2, true));
+$("zview").addEventListener("wheel", e => { if (e.ctrlKey) { e.preventDefault(); zoomAt(Math.min(8, Math.max(1, zoom * (e.deltaY < 0 ? 1.2 : 1 / 1.2))), e.clientX, e.clientY); } }, { passive: false });
+$("zview").addEventListener("dblclick", e => { if (e.pointerType !== "touch") zoomAt(zoom >= 8 ? 1 : zoom * 2, e.clientX, e.clientY); });
 window.addEventListener("resize", () => { if ($("zoomDlg").open) setZoom(zoom, true); });
-{ // 끌어서 이동
-  const v = $("zview"); let drag = null;
-  v.addEventListener("pointerdown", e => { drag = { x: e.clientX, y: e.clientY, l: v.scrollLeft, t: v.scrollTop }; v.setPointerCapture(e.pointerId); v.classList.add("drag"); });
-  v.addEventListener("pointermove", e => { if (!drag) return; v.scrollLeft = drag.l - (e.clientX - drag.x); v.scrollTop = drag.t - (e.clientY - drag.y); });
-  const end = () => { drag = null; v.classList.remove("drag"); };
+// 지정한 화면 좌표(cx, cy)를 고정한 채 확대/축소
+function zoomAt(z, cx, cy) {
+  const v = $("zview"), r = v.getBoundingClientRect();
+  const fx = (v.scrollLeft + cx - r.left) / v.scrollWidth, fy = (v.scrollTop + cy - r.top) / v.scrollHeight;
+  setZoom(z, false);
+  v.scrollLeft = fx * v.scrollWidth - (cx - r.left);
+  v.scrollTop = fy * v.scrollHeight - (cy - r.top);
+}
+{ // 한 손가락/마우스 끌어서 이동, 두 손가락 핀치 줌, 두 번 탭하면 확대
+  const v = $("zview"), ptrs = new Map();
+  let pan = null, pinch = null, lastTap = 0;
+  const startPan = e => { pan = { x: e.clientX, y: e.clientY, l: v.scrollLeft, t: v.scrollTop }; };
+  const mid = () => { const [a, b] = [...ptrs.values()]; return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, d: Math.hypot(a.x - b.x, a.y - b.y) || 1 }; };
+  v.addEventListener("pointerdown", e => {
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    v.setPointerCapture(e.pointerId);
+    if (ptrs.size === 1) { startPan(e); v.classList.add("drag"); }
+    else if (ptrs.size === 2) { pan = null; pinch = { d: mid().d, z: zoom }; }
+  });
+  v.addEventListener("pointermove", e => {
+    if (!ptrs.has(e.pointerId)) return;
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (ptrs.size >= 2 && pinch) { const m = mid(); zoomAt(pinch.z * m.d / pinch.d, m.x, m.y); }
+    else if (pan) { v.scrollLeft = pan.l - (e.clientX - pan.x); v.scrollTop = pan.t - (e.clientY - pan.y); }
+  });
+  const end = e => {
+    const had = ptrs.delete(e.pointerId);
+    if (ptrs.size < 2) pinch = null;
+    if (ptrs.size === 1) { const [id, q] = [...ptrs.entries()][0]; startPan({ clientX: q.x, clientY: q.y }); }
+    if (!ptrs.size) {
+      pan = null; v.classList.remove("drag");
+      // 터치 두 번 탭: 확대 (모바일 사파리는 dblclick이 불안정)
+      if (had && e.type === "pointerup" && e.pointerType === "touch") {
+        const now = Date.now();
+        if (now - lastTap < 300) { zoomAt(zoom >= 4 ? 1 : zoom * 2, e.clientX, e.clientY); lastTap = 0; } else lastTap = now;
+      }
+    }
+  };
   v.addEventListener("pointerup", end); v.addEventListener("pointercancel", end);
 }
 $("btnPdf").addEventListener("click", () => { if (state && !state.r.errors.length) savePdf(); });
