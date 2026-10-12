@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="theme-color" content="#c2410c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="현도계산기">
+<script src="/app.js" defer></script>
 <title>현도 계산기 로그인</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap">
@@ -117,7 +124,8 @@ $("f").addEventListener("submit", async e => {
 });
 
 // 이미 로그인된 상태면 바로 들어갑니다.
-fetch("/api/me").then(r => { if (r.ok) location.replace("/home.html"); }).catch(() => {});
+// 인터넷이 안 될 때는 이 기기에 저장된 계산기를 엽니다. (저장된 게 없으면 안내 화면)
+fetch("/api/me").then(r => { if (r.ok) location.replace("/home.html"); }).catch(() => { if (!navigator.onLine) location.replace("/home.html"); });
 </script>
 </body>
 </html>

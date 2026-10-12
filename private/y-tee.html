@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="theme-color" content="#c2410c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="현도계산기">
+<script src="/app.js" defer></script>
 <title>Y-Tee 현도 계산기</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap">
@@ -606,8 +613,8 @@ function buildPrint(p, r) {
 
 // ---------- PDF (각 장을 고해상도 이미지로 1:1 배치, 한글 깨짐 없음) ----------
 const LIBS = {
-  pdf: ["https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js", () => window.jspdf],
-  xlsx: ["https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", () => window.XLSX],
+  pdf: ["/vendor/jspdf.umd.min.js", () => window.jspdf],
+  xlsx: ["/vendor/xlsx.full.min.js", () => window.XLSX],
 };
 function loadLib(name) {
   const [src, get] = LIBS[name];
@@ -893,7 +900,7 @@ load(); render();
 <script>
 document.getElementById("logout").addEventListener("click", function (e) {
   e.preventDefault();
-  fetch("/api/logout", { method: "POST" }).finally(function () { location.href = "/"; });
+  (window.appClearOffline && window.appClearOffline()); fetch("/api/logout", { method: "POST" }).finally(function () { location.href = "/"; });
 });
 </script>
 </body>

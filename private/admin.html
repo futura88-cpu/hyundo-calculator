@@ -129,9 +129,10 @@ $("list").addEventListener("click", async e => {
 });
 $("logout").addEventListener("click", e => {
   e.preventDefault();
-  fetch("/api/logout", { method: "POST" }).finally(() => { location.href = "/"; });
+  (window.appClearOffline && window.appClearOffline()); fetch("/api/logout", { method: "POST" }).finally(() => { location.href = "/"; });
 });
 load();
 </script>
+<script src="/app.js" defer></script>
 </body>
 </html>
