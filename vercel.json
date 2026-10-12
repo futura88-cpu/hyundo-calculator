@@ -1,0 +1,12 @@
+{
+  "buildCommand": null,
+  "outputDirectory": "public",
+  "rewrites": [
+    { "source": "/home.html", "destination": "/api/page?name=home" },
+    { "source": "/trunnion-template.html", "destination": "/api/page?name=trunnion-template" },
+    { "source": "/y-tee.html", "destination": "/api/page?name=y-tee" }
+  ],
+  "functions": {
+    "api/page.js": { "includeFiles": "private/**" }
+  }
+}

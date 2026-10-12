@@ -1,0 +1,5 @@
+{
+  "name": "hyundo-calculator",
+  "private": true,
+  "engines": { "node": ">=18" }
+}

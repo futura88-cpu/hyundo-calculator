@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>현도 계산기 로그인</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap">
+<style>
+:root {
+  --bg: #eef0ec; --panel: #ffffff; --ink: #1c231f; --muted: #5d6762; --line: #c8cec9;
+  --accent: #c2410c; --accent-soft: #fbe6da; --on-accent: #ffffff;
+  --bad: #b42318; --bad-soft: #fde7e4; --ok: #1a6b3a; --ok-soft: #e0f3e7;
+  --f-body: "IBM Plex Sans KR", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #151a17; --panel: #1d2420; --ink: #e6ebe7; --muted: #9aa59f; --line: #34403a;
+    --accent: #fb8a4c; --accent-soft: #3a2418; --on-accent: #1a0d05;
+    --bad: #ff8a7a; --bad-soft: #3b1d19; --ok: #7fd9a0; --ok-soft: #173424; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--f-body); padding: 0 16px; min-height: 100vh; display: grid; place-items: center; }
+.box { width: 100%; max-width: 380px; padding-block: 32px; }
+h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.01em; }
+.sub { color: var(--muted); margin: 0 0 18px; font-size: 13px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+.tabs { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; margin-bottom: 14px; }
+.tabs button { font: 500 13px var(--f-body); padding: 9px 4px; border: 0; background: var(--bg); color: var(--ink); cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+form { display: grid; gap: 12px; }
+label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
+input { font: 16px var(--f-body); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 5px; padding: 9px 10px; width: 100%; }
+input:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.go { font: 700 14px var(--f-body); border: 1px solid var(--accent); background: var(--accent); color: var(--on-accent); border-radius: 6px; padding: 10px 14px; cursor: pointer; }
+.go:disabled { opacity: 0.6; cursor: wait; }
+.msg { border-radius: 6px; padding: 8px 10px; font-size: 13px; margin-top: 12px; }
+.msg.bad { background: var(--bad-soft); color: var(--bad); }
+.msg.ok { background: var(--ok-soft); color: var(--ok); }
+.hint { font-size: 12px; color: var(--muted); margin: 12px 0 0; }
+</style>
+</head>
+<body>
+<main class="box">
+  <h1>현도 계산기</h1>
+  <p class="sub">관리자가 승인한 멤버만 사용할 수 있습니다.</p>
+  <div class="card">
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" id="tabLogin" aria-selected="true">로그인</button>
+      <button type="button" role="tab" id="tabSignup" aria-selected="false">가입 신청</button>
+    </div>
+    <form id="f">
+      <label>이메일 <input id="email" type="email" autocomplete="username" required></label>
+      <label>비밀번호 <input id="pw" type="password" autocomplete="current-password" minlength="8" required></label>
+      <button class="go" id="go" type="submit">로그인</button>
+    </form>
+    <div class="msg" id="msg" role="status" hidden></div>
+    <p class="hint" id="hint" hidden>가입 신청 후 관리자가 승인하면 로그인할 수 있습니다. 비밀번호는 8자 이상입니다.</p>
+  </div>
+</main>
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+let mode = "login";
+
+function setMode(m) {
+  mode = m;
+  $("tabLogin").setAttribute("aria-selected", m === "login");
+  $("tabSignup").setAttribute("aria-selected", m === "signup");
+  $("go").textContent = m === "login" ? "로그인" : "가입 신청";
+  $("pw").autocomplete = m === "login" ? "current-password" : "new-password";
+  $("hint").hidden = m === "login";
+  show("");
+}
+function show(text, kind) {
+  const el = $("msg");
+  el.hidden = !text;
+  el.textContent = text;
+  el.className = "msg " + (kind || "bad");
+}
+async function post(url, body) {
+  const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  let d = {};
+  try { d = await r.json(); } catch (e) { /* 본문 없음 */ }
+  return { r, d };
+}
+
+$("tabLogin").addEventListener("click", () => setMode("login"));
+$("tabSignup").addEventListener("click", () => setMode("signup"));
+$("f").addEventListener("submit", async e => {
+  e.preventDefault();
+  $("go").disabled = true; show("");
+  try {
+    const { r, d } = await post(mode === "login" ? "/api/login" : "/api/signup", { email: $("email").value.trim(), password: $("pw").value });
+    if (r.ok && mode === "login") { location.replace("/home.html"); return; }
+    if (r.ok) { show(d.message || "가입 신청이 접수되었습니다.", "ok"); $("pw").value = ""; return; }
+    show(d.error || "요청을 처리하지 못했습니다.", "bad");
+  } catch (err) {
+    show("서버에 연결하지 못했습니다. 잠시 후 다시 시도하세요.", "bad");
+  } finally { $("go").disabled = false; }
+});
+
+// 이미 로그인된 상태면 바로 들어갑니다.
+fetch("/api/me").then(r => { if (r.ok) location.replace("/home.html"); }).catch(() => {});
+</script>
+</body>
+</html>
