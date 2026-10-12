@@ -53,6 +53,26 @@ h1 { font-size: 22px; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
 .xlink + .xlink { margin-left: 0; }
 .grid { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 16px; align-items: start; }
 @media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+/* 한 열(모바일)일 때 표시 순서: 주관 → 가지관 → 배치 → 계산 결과 → 개략도 → 가지관 현도 → 주관 구멍 현도 → 두 치수표 → 출력 → 사용 순서
+   입력 폼과 결과 영역을 display: contents 로 풀어 모든 블록을 .grid 의 항목으로 두고 order 로 정렬합니다. */
+@media (max-width: 860px) {
+  .grid > form#f, .grid > .stack, .grid > .stack > .two { display: contents; }   /* 뒤쪽의 .stack/.two 규칙보다 우선하도록 선택자를 구체화 */
+  form#f > fieldset { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; margin: 0; min-width: 0; }
+  form#f > fieldset:nth-of-type(1) { order: 1; }    /* 주관 */
+  form#f > fieldset:nth-of-type(2) { order: 2; }    /* 가지관 */
+  form#f > fieldset:nth-of-type(3) { order: 3; }    /* 배치 */
+  form#f > fieldset:nth-of-type(4) { order: 11; }   /* 출력 */
+  #msgs { order: 4; }
+  #msgs:empty { display: none; }
+  .m-kpi { order: 5; }
+  .m-schem { order: 6; }
+  .m-prev { order: 7; }
+  .m-prev2 { order: 8; }
+  .m-tbl { order: 9; }
+  .m-tbl2 { order: 10; }
+  .m-how { order: 12; }
+}
+@media (max-width: 520px) { form#f > fieldset { padding: 12px; } }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; min-width: 0; }
 .stack { display: grid; gap: 16px; min-width: 0; }
 h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
@@ -230,35 +250,35 @@ td.l, th.l { text-align: left; font-family: var(--f-body); }
 
     <div class="stack">
       <div class="msgs" id="msgs" aria-live="polite"></div>
-      <div class="card">
+      <div class="card m-kpi">
         <div class="kpis" id="kpis"></div>
       </div>
       <div class="two">
-        <div class="card schem">
+        <div class="card schem m-schem">
           <h2>개략도</h2>
           <div id="schem"></div>
         </div>
-        <div class="card">
+        <div class="card m-prev">
           <h2>가지관 끝 현도 미리보기</h2>
           <div class="paper-scroll" id="preview" role="button" tabindex="0" title="클릭하면 크게 봅니다" aria-label="가지관 현도 크게 보기"></div>
           <p class="hint" style="margin-top:8px">굵은 선을 따라 오려 가지관 OD에 감습니다. 오른쪽 회색 부분은 겹침(풀칠) 여유입니다.</p>
         </div>
       </div>
-      <div class="card">
+      <div class="card m-prev2">
         <h2>주관 구멍 현도 미리보기</h2>
         <div class="paper-scroll" id="preview2" role="button" tabindex="0" title="클릭하면 크게 봅니다" aria-label="주관 구멍 현도 크게 보기"></div>
         <p class="hint" style="margin-top:8px">주관에 감는 종이입니다. 가로는 주관 축방향(오른쪽이 가지관이 기울어진 쪽), 세로는 원주방향입니다. 점선 정상선을 가지관이 붙는 쪽의 주관 중심 모선(맨 위 직선)에 맞추고, 축 교차선이 보이면 기준 위치에 맞춰 윤곽을 마킹합니다.</p>
       </div>
-      <div class="card">
+      <div class="card m-tbl">
         <h2>가지관 등분 치수표</h2>
         <div class="tbl"><table id="tbl" class="dt"></table></div>
       </div>
-      <div class="card">
+      <div class="card m-tbl2">
         <h2>주관 구멍 등분 치수표</h2>
         <div class="tbl"><table id="tbl2" class="dt"></table></div>
         <p class="hint" style="margin-top:8px">x는 주관 축방향, s는 정상선에서 원주를 따라 잰 호 길이(+e 쪽이 +)입니다. 가지관 번호와 같은 번호의 점이 서로 맞닿습니다.</p>
       </div>
-      <div class="card">
+      <div class="card m-how">
         <h2>사용 순서</h2>
         <ol class="how">
           <li>인쇄 대화상자에서 배율을 <b>100% (실제 크기)</b>로 두고, 출력물의 100 mm 눈금자를 자로 재서 확인합니다.</li>
