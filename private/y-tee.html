@@ -225,7 +225,14 @@ td.l, th.l { text-align: left; font-family: var(--f-body); }
           <label>편심 e <input id="offE" type="number" step="0.5"></label>
         </div>
         <p class="hint">α = 주관 축과 가지관 축 사이 각도 (Y-Tee는 보통 45, 90이면 직교 티). e = 두 축 사이 거리 (동심 = 0). 가지관은 주관 축의 +x 방향(예각 쪽)으로 기울어집니다.</p>
-        <label>H: 주관 중심 → 가지관 끝 <input id="height" type="number" step="1" min="0"></label>
+        <label>H 입력 기준
+          <select id="hRef">
+            <option value="center">주관 중심점에서의 거리</option>
+            <option value="od">주관 외경 끝에서의 거리</option>
+          </select>
+        </label>
+        <p class="hint">외경 끝 기준은 가지관 축이 주관 외경(OD) 면과 만나는 점에서 가지관 끝단까지 축을 따라 잰 길이입니다.</p>
+        <label>H: 선택한 기준 → 가지관 끝 <input id="height" type="number" step="1" min="0"></label>
       </fieldset>
 
       <fieldset>
@@ -318,9 +325,9 @@ const NPS = [
 ];
 const PAPERS = { A4L: [297, 210, "A4 가로"], A4P: [210, 297, "A4 세로"], A3L: [420, 297, "A3 가로"] };
 const DEF = { mainNps: "6\"", mainOd: 168.3, trNps: "4\"", trOd: 114.3, trT: 6.02,
-  contact: "id", angle: 45, offE: 0, height: 300, divs: "16", paper: "A4L" };
+  contact: "id", angle: 45, offE: 0, hRef: "center", height: 300, divs: "16", paper: "A4L" };
 const $ = id => document.getElementById(id);
-const FIELDS = ["mainNps","mainOd","trNps","trOd","trT","contact","angle","offE","height","divs","paper"];
+const FIELDS = ["mainNps","mainOd","trNps","trOd","trT","contact","angle","offE","hRef","height","divs","paper"];
 const f1 = v => (Math.round(v * 10) / 10).toFixed(1);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
@@ -338,6 +345,10 @@ function readParams() {
   p.R = p.mainOd / 2;
   p.rw = p.trOd / 2;
   p.rc = p.contact === "id" ? (p.trOd - 2 * p.trT) / 2 : p.trOd / 2;
+  // H는 선택한 기준에서 잰 값. 계산용 Hc = 주관 중심 기준 값으로 환산 (외경 끝 기준: 축이 주관 OD 면과 만나는 점부터)
+  const fromOd = $("hRef").value === "od";
+  p.hBasis = fromOd ? "주관 OD 끝" : "주관 중심";
+  p.Hc = fromOd ? p.H + Math.sqrt(Math.max(0, p.R * p.R - p.e * p.e)) / Math.sin(p.angle * Math.PI / 180) : p.H;
   return p;
 }
 
@@ -383,12 +394,12 @@ function compute(p) {
   const divs = [];
   for (let k = 0; k <= p.divs; k++) {
     const th = 2 * Math.PI * k / p.divs, t = hitT(p, th), hp = holePt(p, th);
-    divs.push({ k, deg: 360 * k / p.divs, x: p.rw * th, ord: ord(t), L: p.H - t, hx: hp.x, hs: hp.s });
+    divs.push({ k, deg: 360 * k / p.divs, x: p.rw * th, ord: ord(t), L: p.Hc - t, hx: hp.x, hs: hp.s });
   }
   const hpts = fine.map(q => holePt(p, q.th));
   const hole = { pts: hpts, xmin: Math.min(...hpts.map(q => q.x)), xmax: Math.max(...hpts.map(q => q.x)),
     smin: Math.min(...hpts.map(q => q.s)), smax: Math.max(...hpts.map(q => q.s)) };
-  const Lmin = p.H - tmax, Lmax = p.H - tmin;
+  const Lmin = p.Hc - tmax, Lmax = p.Hc - tmin;
   if (p.H > 0 && Lmin - p.G < 0) warns.push("기준선이 가지관 끝면보다 바깥에 놓입니다. H를 늘리세요.");
   if (p.H > 0 && Lmin <= 0) errors.push("H가 너무 짧아 가지관이 주관과 겹칩니다. H를 늘리세요.");
   return { errors, warns, fine, divs, hole, tmax, tmin, depth: tmax - tmin, W, ord, Lmin, Lmax };
@@ -526,23 +537,23 @@ function schemSvg(p, r) {
   const al = p.angle * Math.PI / 180, dx = Math.cos(al), dz = Math.sin(al);
   const ux = -Math.sin(al), uz = Math.cos(al);
   const P = (t, k) => [t * dx + k * ux, -(t * dz + k * uz)];
-  const span = Math.max(2.2 * p.R, Math.abs(p.H * dx) + p.rw + p.R);
+  const span = Math.max(2.2 * p.R, Math.abs(p.Hc * dx) + p.rw + p.R);
   const curve = [];
   for (let i = 0; i <= 90; i++) { const th = Math.PI * i / 90; curve.push(P(hitT(p, th), p.rc * Math.cos(th))); }
-  const e0 = P(p.H, p.rc), e1 = P(p.H, -p.rc);
+  const e0 = P(p.Hc, p.rc), e1 = P(p.Hc, -p.rc);
   const poly = [e0, ...curve, e1];
   poly.forEach(q => add(...q));
   els.push(`<polygon class="trn" points="${poly.map(q => q.map(v => v.toFixed(1)).join(",")).join(" ")}"/>`);
   els.push(`<rect class="pipe" x="${-span}" y="${-p.R}" width="${2 * span}" height="${2 * p.R}"/>`);
   add(-span, -p.R); add(span, p.R);
   els.push(`<line class="cl" x1="${-span - 10}" y1="0" x2="${span + 10}" y2="0"/>`);
-  const c = P(p.H + 15, 0);
+  const c = P(p.Hc + 15, 0);
   els.push(`<line class="cl" x1="0" y1="0" x2="${c[0].toFixed(1)}" y2="${c[1].toFixed(1)}"/>`);
   add(...c);
-  const lbl = P(p.H * 0.75, -(p.rw + 0.12 * p.R));
+  const lbl = P(p.Hc * 0.75, -(p.rw + 0.12 * p.R));
   els.push(`<text x="${lbl[0].toFixed(1)}" y="${lbl[1].toFixed(1)}" font-size="{FS}">H ${f1(p.H)}</text>`);
   if (p.angle < 89.99) els.push(`<text x="${(0.6 * p.R).toFixed(1)}" y="${(-1.15 * p.R).toFixed(1)}" font-size="{FS}">α ${p.angle}°</text>`);
-  const z0 = P(hitT(p, 0) + 0.25 * (p.H - hitT(p, 0)), p.rw + 0.05 * p.R);
+  const z0 = P(hitT(p, 0) + 0.25 * (p.Hc - hitT(p, 0)), p.rw + 0.05 * p.R);
   els.push(`<text x="${z0[0].toFixed(1)}" y="${z0[1].toFixed(1)}" font-size="{FS}" text-anchor="end">0° →</text>`);
   return fitSvg(els, pts, "배치 개략도");
 }
@@ -566,7 +577,7 @@ function buildPrint(p, r) {
   const items = tplItems(p, r), base = pagePlan(p, items[0]);
   const { pw, ph, m, head, ov, uw, uh } = base, hh = ph - 2 * m - 0.5, bx = uw - 102;
   $("pagestyle").textContent = `@page { size: ${pw}mm ${ph}mm; margin: ${m}mm; }`;
-  const desc = `Y-Tee | 주관 OD ${f1(p.mainOd)} | 가지관 OD ${f1(p.trOd)} t${p.trT} (${$("contact").selectedOptions[0].text}) | α ${p.angle}° | e ${p.e}`;
+  const desc = `Y-Tee | 주관 OD ${f1(p.mainOd)} | 가지관 OD ${f1(p.trOd)} t${p.trT} (${$("contact").selectedOptions[0].text}) | α ${p.angle}° | e ${p.e} | H ${p.H} (${p.hBasis} 기준)`;
   const bar = `<rect x="${bx}" y="1.5" width="100" height="2.5" fill="none" stroke="#000" stroke-width="0.25"/>` +
     [0, 2, 4, 6, 8].map(i => `<rect x="${bx + i * 10}" y="1.5" width="10" height="2.5" fill="#000"/>`).join("") +
     `<text x="${bx + 50}" y="7.8" font-size="2.6" text-anchor="middle">이 막대가 정확히 100 mm인지 확인</text>`;
@@ -644,7 +655,7 @@ async function saveXlsx() {
   const info = [
     ["Y-Tee 현도 계산 결과"], [pl.desc], [],
     ["가지관 전개 폭 (OD 둘레, mm)", +r.W.toFixed(1)], [`등분 간격 (${p.divs}등분, mm)`, +(r.W / p.divs).toFixed(1)], ["곡선 최대 깊이 (mm)", +r.depth.toFixed(1)],
-    ["H (mm)", p.H],
+    [`H (mm, ${p.hBasis} 기준)`, p.H],
     ["최단 컷 길이 (mm)", +r.Lmin.toFixed(1)], ["최장 컷 길이 (mm)", +r.Lmax.toFixed(1)], ["끝면 → 기준선 (mm)", +(r.Lmin - p.G).toFixed(1)],
     ["주관 구멍 길이 (축방향, mm)", +(h.xmax - h.xmin).toFixed(1)], ["주관 구멍 폭 (원주방향, mm)", +(h.smax - h.smin).toFixed(1)], ["교차점 → 구멍 시작점 (mm)", +h.xmin.toFixed(1)], [],
     ["번호", "각도 (°)", "둘레 위치 (mm)", "기준선 → 곡선 (mm)", "컷 길이 (mm)", "위치"],
@@ -655,7 +666,7 @@ async function saveXlsx() {
   const fine = [["각도 (°)", "둘레 위치 (mm)", "기준선 → 곡선 (mm)", "컷 길이 (mm)", "구멍 x 교차점 기준 (mm)", "구멍 s 정상선 기준 (mm)"]];
   for (let deg = 0; deg < 360; deg++) {
     const th = deg * Math.PI / 180, t = hitT(p, th), hp = holePt(p, th);
-    fine.push([deg, +(p.rw * th).toFixed(2), +r.ord(t).toFixed(2), +(p.H - t).toFixed(2), +hp.x.toFixed(2), +hp.s.toFixed(2)]);
+    fine.push([deg, +(p.rw * th).toFixed(2), +r.ord(t).toFixed(2), +(p.Hc - t).toFixed(2), +hp.x.toFixed(2), +hp.s.toFixed(2)]);
   }
   try {
     const X = await loadLib("xlsx");
