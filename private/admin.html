@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>멤버 관리</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap">
+<style>
+:root {
+  --bg: #eef0ec; --panel: #ffffff; --ink: #1c231f; --muted: #5d6762; --line: #c8cec9;
+  --accent: #c2410c; --accent-soft: #fbe6da; --on-accent: #ffffff;
+  --bad: #b42318; --bad-soft: #fde7e4; --ok: #1a6b3a; --ok-soft: #e0f3e7; --warn: #9a6700; --warn-soft: #fff4d6;
+  --f-body: "IBM Plex Sans KR", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #151a17; --panel: #1d2420; --ink: #e6ebe7; --muted: #9aa59f; --line: #34403a;
+    --accent: #fb8a4c; --accent-soft: #3a2418; --on-accent: #1a0d05;
+    --bad: #ff8a7a; --bad-soft: #3b1d19; --ok: #7fd9a0; --ok-soft: #173424; --warn: #f2c14e; --warn-soft: #352c14; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--f-body); padding: 0 16px; }
+.wrap { max-width: 900px; margin: 0 auto; padding-block: 28px 48px; }
+.bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px 16px; margin-bottom: 4px; }
+h1 { font-size: 22px; margin: 0; letter-spacing: -0.01em; }
+.links { display: flex; gap: 14px; }
+.links a { color: var(--accent); font-weight: 700; font-size: 13px; text-decoration: none; white-space: nowrap; }
+.sub { color: var(--muted); margin: 0 0 16px; font-size: 13px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px; }
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.tabs button { font: 500 13px var(--f-body); padding: 7px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); cursor: pointer; }
+.tabs button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); font-weight: 700; }
+.tabs b { font-weight: 700; }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.list { display: grid; }
+.row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; align-items: center; padding: 10px 2px; border-top: 1px solid var(--line); }
+.row:first-child { border-top: 0; }
+.mail { font-weight: 500; overflow-wrap: anywhere; }
+.meta { color: var(--muted); font-size: 12px; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
+.badge { font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 99px; }
+.badge.pending { background: var(--warn-soft); color: var(--warn); }
+.badge.approved { background: var(--ok-soft); color: var(--ok); }
+.badge.rejected { background: var(--bad-soft); color: var(--bad); }
+.badge.admin { background: var(--accent-soft); color: var(--accent); }
+.acts { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.acts button { font: 600 12px var(--f-body); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; }
+.acts button.go { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.acts button:disabled { opacity: 0.5; cursor: wait; }
+.msg { border-radius: 6px; padding: 8px 10px; font-size: 13px; margin-bottom: 12px; }
+.msg.bad { background: var(--bad-soft); color: var(--bad); }
+.empty { color: var(--muted); padding: 18px 2px; text-align: center; }
+@media (max-width: 560px) { .row { grid-template-columns: minmax(0, 1fr); } .acts { justify-content: flex-start; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bar">
+    <h1>멤버 관리</h1>
+    <span class="links"><a href="/home.html">← 계산기</a><a href="#" id="logout">로그아웃</a></span>
+  </div>
+  <p class="sub">가입 신청한 멤버를 승인하거나 거부합니다. 상태를 바꾸면 그 멤버의 다음 페이지 요청부터 바로 적용됩니다.</p>
+  <div class="msg bad" id="err" role="alert" hidden></div>
+  <div class="card">
+    <div class="tabs" id="tabs"></div>
+    <div class="list" id="list" aria-live="polite"></div>
+  </div>
+</div>
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const LABEL = { pending: "승인 대기", approved: "승인됨", rejected: "거부됨" };
+const TABS = [["pending", "승인 대기"], ["approved", "승인됨"], ["rejected", "거부됨"], ["all", "전체"]];
+let members = [], me = "", tab = "pending";
+
+const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const fmt = iso => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleString("ko-KR", { dateStyle: "medium", timeStyle: "short" }); };
+function showErr(t) { $("err").hidden = !t; $("err").textContent = t || ""; }
+
+function render() {
+  const count = s => members.filter(m => m.status === s).length;
+  $("tabs").innerHTML = TABS.map(([k, name]) => {
+    const n = k === "all" ? members.length : count(k);
+    return `<button type="button" data-tab="${k}" aria-pressed="${k === tab}">${name} <b>${n}</b></button>`;
+  }).join("");
+  const shown = members.filter(m => tab === "all" || m.status === tab);
+  $("list").innerHTML = shown.length ? shown.map(m => {
+    const self = m.id === me;
+    const acts = self ? "" : [
+      m.status !== "approved" ? `<button type="button" class="go" data-id="${m.id}" data-st="approved">승인</button>` : "",
+      m.status !== "rejected" ? `<button type="button" data-id="${m.id}" data-st="rejected">거부</button>` : "",
+      m.status === "approved" ? `<button type="button" data-id="${m.id}" data-st="pending">보류</button>` : "",
+    ].join("");
+    return `<div class="row"><div><div class="mail">${esc(m.email)}</div>` +
+      `<div class="meta"><span class="badge ${m.status}">${LABEL[m.status] || esc(m.status)}</span>${m.is_admin ? '<span class="badge admin">관리자</span>' : ""}<span>${fmt(m.created_at)} 가입</span></div></div>` +
+      `<div class="acts">${acts}</div></div>`;
+  }).join("") : `<div class="empty">${tab === "pending" ? "승인 대기 중인 멤버가 없습니다." : "해당하는 멤버가 없습니다."}</div>`;
+}
+
+async function load() {
+  try {
+    const r = await fetch("/api/admin/members");
+    const d = await r.json().catch(() => ({}));
+    if (r.status === 403 || r.status === 401) { location.replace("/"); return; }
+    if (!r.ok) { showErr(d.error || "목록을 불러오지 못했습니다."); return; }
+    members = d.members; me = d.me; showErr(""); render();
+  } catch (e) { showErr("서버에 연결하지 못했습니다."); }
+}
+
+$("tabs").addEventListener("click", e => {
+  const b = e.target.closest("button[data-tab]");
+  if (b) { tab = b.dataset.tab; render(); }
+});
+$("list").addEventListener("click", async e => {
+  const b = e.target.closest("button[data-id]");
+  if (!b) return;
+  const row = b.closest(".row");
+  row.querySelectorAll("button").forEach(x => x.disabled = true);
+  try {
+    const r = await fetch("/api/admin/status", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: b.dataset.id, status: b.dataset.st }) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) { showErr(d.error || "상태를 바꾸지 못했습니다."); render(); return; }
+    const m = members.find(x => x.id === b.dataset.id);
+    if (m) m.status = d.member.status;
+    showErr(""); render();
+  } catch (err) { showErr("서버에 연결하지 못했습니다."); render(); }
+});
+$("logout").addEventListener("click", e => {
+  e.preventDefault();
+  fetch("/api/logout", { method: "POST" }).finally(() => { location.href = "/"; });
+});
+load();
+</script>
+</body>
+</html>

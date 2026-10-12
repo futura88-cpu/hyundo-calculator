@@ -11,7 +11,8 @@ module.exports = async (req, res) => {
   if (!r.ok) return res.status(401).json({ error: "이메일 또는 비밀번호가 올바르지 않습니다." });
   const s = await r.json();
 
-  const status = await L.profileStatus(s.access_token, s.user.id);
+  const info = await L.profileInfo(s.access_token, s.user.id);
+  const status = info && info.status;
   if (status !== "approved") {
     return res.status(403).json({
       status: status || "pending",

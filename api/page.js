@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const L = require("./_lib");
 
-const PAGES = new Set(["home", "trunnion-template", "y-tee"]);
+const PAGES = new Set(["home", "trunnion-template", "y-tee", "admin"]);
 
 module.exports = async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
@@ -14,6 +14,10 @@ module.exports = async (req, res) => {
   const s = await L.getSession(req, res);
   if (!s || s.status !== "approved") {
     res.setHeader("Location", "/");
+    return res.status(302).end();
+  }
+  if (name === "admin" && !s.isAdmin) {   // 관리자 화면은 관리자만
+    res.setHeader("Location", "/home.html");
     return res.status(302).end();
   }
   const html = fs.readFileSync(path.join(process.cwd(), "private", name + ".html"), "utf8");

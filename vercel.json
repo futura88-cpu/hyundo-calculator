@@ -4,7 +4,8 @@
   "rewrites": [
     { "source": "/home.html", "destination": "/api/page?name=home" },
     { "source": "/trunnion-template.html", "destination": "/api/page?name=trunnion-template" },
-    { "source": "/y-tee.html", "destination": "/api/page?name=y-tee" }
+    { "source": "/y-tee.html", "destination": "/api/page?name=y-tee" },
+    { "source": "/admin.html", "destination": "/api/page?name=admin" }
   ],
   "functions": {
     "api/page.js": { "includeFiles": "private/**" }
