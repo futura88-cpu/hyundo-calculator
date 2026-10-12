@@ -195,6 +195,11 @@ td.l, th.l { text-align: left; font-family: var(--f-body); }
 
       <fieldset>
         <legend>배치</legend>
+        <label>등분 수
+          <select id="divs">
+            <option>8</option><option>12</option><option selected>16</option><option>24</option><option>32</option>
+          </select>
+        </label>
         <div class="row">
           <label>교차각 α (°) <input id="angle" type="number" step="0.5" min="15" max="90"></label>
           <label>편심 e <input id="offE" type="number" step="0.5"></label>
@@ -205,19 +210,12 @@ td.l, th.l { text-align: left; font-family: var(--f-body); }
 
       <fieldset>
         <legend>출력</legend>
-        <div class="row">
-          <label>등분 수
-            <select id="divs">
-              <option>8</option><option>12</option><option selected>16</option><option>24</option><option>32</option>
-            </select>
-          </label>
-          <label>용지
-            <select id="paper">
-              <option value="A4L">A4 가로</option>
-              <option value="A3L">A3 가로</option>
-            </select>
-          </label>
-        </div>
+        <label>용지
+          <select id="paper">
+            <option value="A4L">A4 가로</option>
+            <option value="A3L">A3 가로</option>
+          </select>
+        </label>
         <div class="btns">
           <button type="button" class="primary" id="btnPrint">1:1 인쇄</button>
           <button type="button" id="btnDxf">DXF 저장</button>
