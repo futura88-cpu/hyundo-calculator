@@ -8,7 +8,7 @@ const PAGES = new Set(["home", "trunnion-template", "y-tee", "admin"]);
 module.exports = async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   const name = String((req.query && req.query.name) || "");
-  if (!PAGES.has(name)) return res.status(404).send("Not found");
+  if (!PAGES.has(name)) return res.status(404).send("페이지를 찾을 수 없습니다.");
   if (!L.configured()) return res.status(500).send("서버 설정(Supabase 환경변수)이 되어 있지 않습니다.");
 
   const s = await L.getSession(req, res);
