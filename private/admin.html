@@ -53,6 +53,8 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .msg.bad { background: var(--bad-soft); color: var(--bad); }
 .empty { color: var(--muted); padding: 18px 2px; text-align: center; }
 @media (max-width: 560px) { .row { grid-template-columns: minmax(0, 1fr); } .acts { justify-content: flex-start; } }
+.copy { margin-top: 28px; text-align: center; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.copy a { color: inherit; }
 </style>
 </head>
 <body>
@@ -67,6 +69,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
     <div class="tabs" id="tabs"></div>
     <div class="list" id="list" aria-live="polite"></div>
   </div>
+  <footer class="copy">© 2026 현도 계산기 · 문의: <a href="mailto:futura88@gmail.com">futura88@gmail.com</a></footer>
 </div>
 <script>
 "use strict";
