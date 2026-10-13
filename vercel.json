@@ -5,7 +5,8 @@
     { "source": "/home.html", "destination": "/api/page?name=home" },
     { "source": "/trunnion-template.html", "destination": "/api/page?name=trunnion-template" },
     { "source": "/y-tee.html", "destination": "/api/page?name=y-tee" },
-    { "source": "/admin.html", "destination": "/api/page?name=admin" }
+    { "source": "/admin.html", "destination": "/api/page?name=admin" },
+    { "source": "/manual.html", "destination": "/api/page?name=manual" }
   ],
   "headers": [
     { "source": "/sw.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }, { "key": "Service-Worker-Allowed", "value": "/" }] },

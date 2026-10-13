@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const L = require("./_lib");
 
-const PAGES = new Set(["home", "trunnion-template", "y-tee", "admin"]);
+const PAGES = new Set(["home", "trunnion-template", "y-tee", "admin", "manual"]);
 
 module.exports = async (req, res) => {
   res.setHeader("Cache-Control", "no-store");

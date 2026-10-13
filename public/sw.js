@@ -6,7 +6,7 @@
 const VERSION = "v1";
 const STATIC = "static-" + VERSION;      // 로그인 화면, 아이콘, 라이브러리, 폰트 (공개 파일)
 const PRIVATE = "private-pages";         // 계산기 페이지 (승인 멤버 전용)
-const PRIVATE_PAGES = ["/home.html", "/trunnion-template.html", "/y-tee.html"];
+const PRIVATE_PAGES = ["/home.html", "/trunnion-template.html", "/y-tee.html", "/manual.html"];
 const STATIC_FILES = [
   "/", "/app.js", "/manifest.webmanifest",
   "/icons/icon-192.png", "/icons/icon-512.png", "/icons/apple-touch-icon.png",

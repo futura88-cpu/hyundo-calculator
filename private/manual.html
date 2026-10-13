@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="theme-color" content="#c2410c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="현도계산기">
+<script src="/app.js" defer></script>
+<title>현도 계산기 사용 설명서</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap">
+<style>
+:root {
+  --bg: #eef0ec; --panel: #ffffff; --ink: #1c231f; --muted: #5d6762; --line: #c8cec9;
+  --accent: #c2410c; --accent-soft: #fbe6da; --warn: #9a6700; --warn-soft: #fff4d6;
+  --f-body: "IBM Plex Sans KR", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #151a17; --panel: #1d2420; --ink: #e6ebe7; --muted: #9aa59f; --line: #34403a;
+    --accent: #fb8a4c; --accent-soft: #3a2418; --warn: #f2c14e; --warn-soft: #352c14; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.7 var(--f-body); padding: 0 16px; }
+.wrap { max-width: 820px; margin: 0 auto; padding-block: 24px 48px; }
+.bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 16px; }
+h1 { font-size: 24px; margin: 0; letter-spacing: -0.01em; }
+.links { display: flex; gap: 14px; }
+.links a { color: var(--accent); font-weight: 700; font-size: 13px; text-decoration: none; white-space: nowrap; }
+.sub { color: var(--muted); margin: 4px 0 18px; font-size: 14px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; margin-bottom: 14px; }
+h2 { font-size: 18px; margin: 0 0 8px; }
+h3 { font-size: 15px; margin: 18px 0 6px; }
+p { margin: 6px 0; }
+ol, ul { margin: 6px 0; padding-left: 22px; }
+li { margin: 3px 0; }
+.toc { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 6px 14px; padding-left: 0; list-style: none; }
+.toc a { color: var(--accent); text-decoration: none; font-weight: 500; }
+.toc a:hover { text-decoration: underline; }
+.steps { counter-reset: s; list-style: none; padding: 0; display: grid; gap: 8px; }
+.steps li { counter-increment: s; position: relative; padding-left: 38px; }
+.steps li::before { content: counter(s); position: absolute; left: 0; top: 1px; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+.note { background: var(--accent-soft); border-radius: 6px; padding: 8px 12px; margin: 10px 0; font-size: 14px; }
+.warn { background: var(--warn-soft); color: var(--warn); border-radius: 6px; padding: 8px 12px; margin: 10px 0; font-size: 14px; }
+.tbl { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 7px 10px; border-bottom: 1px solid var(--line); }
+th { background: var(--bg); font-weight: 700; white-space: nowrap; }
+td:first-child { white-space: nowrap; font-weight: 500; }
+details { border-top: 1px solid var(--line); padding: 8px 0; }
+details:first-of-type { border-top: 0; }
+summary { cursor: pointer; font-weight: 700; }
+b.k { color: var(--accent); }
+a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.copy { margin-top: 28px; text-align: center; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.copy a { color: inherit; }
+@media print { body { background: #fff; color: #000; } .links { display: none; } .card { break-inside: avoid; } details > * { display: block; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bar">
+    <h1>현도 계산기 사용 설명서</h1>
+    <span class="links"><a href="/home.html">← 계산기 선택</a></span>
+  </div>
+  <p class="sub">배관에 트러니언·가지관을 붙일 때 필요한 현도(절단·마킹용 종이 템플릿)를 계산하고 1:1로 출력하는 방법을 안내합니다. 단위는 모두 mm입니다.</p>
+
+  <div class="card">
+    <h2>목차</h2>
+    <ul class="toc">
+      <li><a href="#quick">1. 3분 시작하기</a></li>
+      <li><a href="#login">2. 가입과 로그인</a></li>
+      <li><a href="#install">3. 폰에 설치하고 인터넷 없이 쓰기</a></li>
+      <li><a href="#trn">4. 트러니언 현도 계산기</a></li>
+      <li><a href="#ytee">5. Y-Tee 현도 계산기</a></li>
+      <li><a href="#mark">6. 출력한 현도로 마킹하기</a></li>
+      <li><a href="#save">7. 저장 기능 (PDF, Excel, DXF, SVG)</a></li>
+      <li><a href="#faq">8. 자주 묻는 질문</a></li>
+      <li><a href="#admin">9. 관리자용: 멤버 승인</a></li>
+    </ul>
+  </div>
+
+  <div class="card" id="quick">
+    <h2>1. 3분 시작하기</h2>
+    <ol class="steps">
+      <li><b>계산기를 고릅니다.</b> 로그인하면 나오는 첫 화면에서 <b>트러니언 현도 계산기</b> 또는 <b>Y-Tee 현도 계산기</b>를 누릅니다.</li>
+      <li><b>치수를 넣습니다.</b> 주관과 트러니언(또는 가지관)의 호칭경을 고르면 외경과 두께가 자동으로 채워지고, 배치와 H 값을 입력하면 결과가 바로 계산됩니다.</li>
+      <li><b>1:1로 인쇄합니다.</b> <b>1:1 인쇄</b> 버튼을 눌러 배율 100%로 출력한 뒤, 오려서 파이프에 감고 곡선을 따라 마킹합니다.</li>
+    </ol>
+    <div class="note">입력값이 바뀔 때마다 결과(개략도, 전개도, 치수표)가 자동으로 다시 계산됩니다. 계산 버튼은 따로 없습니다.</div>
+  </div>
+
+  <div class="card" id="login">
+    <h2>2. 가입과 로그인</h2>
+    <p>이 사이트는 <b>관리자가 승인한 멤버만</b> 사용할 수 있습니다.</p>
+    <h3>처음 사용할 때 (가입 신청)</h3>
+    <ol>
+      <li>첫 화면에서 <b>가입 신청</b> 탭을 누릅니다.</li>
+      <li>이메일, 이름, 전화번호, 비밀번호(8자 이상)를 입력하고 <b>가입 신청</b>을 누릅니다.</li>
+      <li>"가입 신청이 접수되었습니다"가 나오면 끝입니다. <b>관리자가 승인하면</b> 로그인할 수 있습니다. 승인 전에 로그인하면 "관리자 승인 대기 중입니다"가 표시됩니다.</li>
+    </ol>
+    <p>이름과 전화번호는 관리자가 가입자를 확인하는 용도로만 사용됩니다. 승인이 급하면 관리자에게 직접 연락해 승인을 요청하세요.</p>
+    <h3>로그인과 로그아웃</h3>
+    <ul>
+      <li><b>로그인</b> 탭에서 이메일과 비밀번호를 입력합니다.</li>
+      <li><b>로그인 정보 기억하기</b>를 체크하면 이 기기에서 30일간 로그인이 유지되고 이메일이 자동 입력됩니다. 비밀번호는 저장하지 않으니, 브라우저가 비밀번호 저장을 물으면 저장하세요. <b>공용 PC에서는 체크하지 마세요.</b></li>
+      <li>화면 오른쪽 위 <b>로그아웃</b>을 누르면 로그아웃됩니다. 이때 폰에 저장해 둔 계산기도 함께 지워집니다.</li>
+    </ul>
+  </div>
+
+  <div class="card" id="install">
+    <h2>3. 폰에 설치하고 인터넷 없이 쓰기</h2>
+    <p>앱처럼 홈 화면에 설치해 두면 인터넷이 없는 현장에서도 계산기를 쓸 수 있습니다. 설치는 한 번만 하면 됩니다.</p>
+    <h3>아이폰 (Safari)</h3>
+    <ol>
+      <li>Safari로 사이트 주소를 열고 로그인합니다.</li>
+      <li>아래쪽 <b>공유 버튼 → 홈 화면에 추가</b>를 누릅니다.</li>
+      <li>홈 화면의 <b>현도계산기</b> 아이콘으로 열고, <b>앱 안에서 한 번 더 로그인</b>합니다. (아이폰은 설치한 앱과 Safari의 저장 공간이 따로입니다.)</li>
+    </ol>
+    <h3>안드로이드 (크롬)</h3>
+    <ol>
+      <li>크롬으로 사이트 주소를 열고 로그인합니다.</li>
+      <li>오른쪽 위 <b>⋮ 메뉴 → 앱 설치</b>(또는 홈 화면에 추가)를 누릅니다.</li>
+      <li>홈 화면의 <b>현도계산기</b> 아이콘으로 엽니다.</li>
+    </ol>
+    <div class="warn"><b>꼭 하세요:</b> 설치한 뒤 <b>인터넷이 되는 곳에서</b> 계산기 선택 화면, 트러니언, Y-Tee, 이 설명서를 <b>한 번씩 열어 두세요.</b> 열어 본 화면만 폰에 저장되어, 이후 인터넷이 없어도 열립니다.</div>
+    <ul>
+      <li>인터넷이 다시 되는 곳에서 접속하면 승인 상태를 확인하고 최신 버전으로 자동 갱신됩니다. 승인이 취소된 계정은 저장된 내용이 지워집니다.</li>
+      <li>설치한 앱에서는 인쇄와 파일 저장이 일반 브라우저와 다르게 동작할 수 있습니다. 이상하면 브라우저로 열어서 시도해 보세요.</li>
+    </ul>
+  </div>
+
+  <div class="card" id="trn">
+    <h2>4. 트러니언 현도 계산기</h2>
+    <p>파이프 위에 세우는 원형 서포트(트러니언)가 주관과 맞닿는 면을 전개해서, 트러니언 끝을 자를 때 쓰는 현도를 만듭니다.</p>
+
+    <h3>4-1. 먼저 형태를 고릅니다</h3>
+    <div class="tbl"><table>
+      <tr><th>형태</th><th>언제 쓰나요</th></tr>
+      <tr><td>직관 트러니언</td><td>곧은 배관 위에 트러니언을 붙일 때. 교차각과 편심을 줄 수 있습니다.</td></tr>
+      <tr><td>엘보 트러니언 (수직)</td><td>엘보 등(배면)에 붙어 아래로 내려가는 더미 레그입니다. 90° 엘보 기준입니다.</td></tr>
+      <tr><td>수평 엘보 트러니언</td><td>수평면에서 꺾이는 90° 엘보 등에 트러니언이 수평으로 뻗는 경우(CF 타입)입니다.</td></tr>
+    </table></div>
+
+    <h3>4-2. 입력 항목</h3>
+    <div class="tbl"><table>
+      <tr><th>항목</th><th>설명</th></tr>
+      <tr><td>주관 인치 / OD</td><td>인치를 고르면 외경(OD)이 자동으로 들어갑니다. 목록에 없는 치수는 <b>직접 입력</b>을 고르거나 OD를 직접 고쳐 쓰세요.</td></tr>
+      <tr><td>엘보 종류, 곡률반경</td><td>(엘보 형태만) <b>LR</b>(1.5D) 또는 <b>SR</b>(1.0D)을 고르면 곡률반경이 자동 계산됩니다. 다른 값은 <b>직접 입력</b>하세요.</td></tr>
+      <tr><td>트러니언 인치 / OD / 두께</td><td>인치를 고르면 OD와 표준(STD) 두께가 자동으로 들어갑니다. 실제 자재가 다르면 직접 고치세요.</td></tr>
+      <tr><td>윤곽 기준</td><td><b>ID (셋온, 권장)</b>: 트러니언 안쪽 모서리가 주관에 닿고 바깥 모서리는 개선(베벨) 가공하는 방식입니다. <b>OD</b>: 바깥 면 기준입니다. 현장에서 쓰는 셋온 용접이면 기본값 ID를 그대로 쓰세요.</td></tr>
+      <tr><td>등분 수</td><td>둘레를 몇 등분해서 치수를 줄지 정합니다. 8/12/16/24/32 중 선택하며 클수록 곡선이 정밀해집니다. 기본값 16.</td></tr>
+      <tr><td>교차각 α, 편심 e</td><td>(직관만) 주관 축과 트러니언 축 사이 각도(직교 = 90)와 두 축 사이 거리(동심 = 0)입니다.</td></tr>
+      <tr><td>정렬</td><td>(엘보만) 트러니언을 센터라인에 맞출지, 안쪽 면(인사이드) 또는 바깥 면(아웃사이드)에 맞출지 고릅니다. 수평 엘보는 <b>입면 정렬</b>(BOP 맞춤 / 센터라인 / TOP 맞춤)과 <b>평면 정렬</b>을 따로 고릅니다.</td></tr>
+      <tr><td>H 입력 기준</td><td>(엘보만) H를 <b>주관 중심점</b>에서 잴지 <b>주관 BOP</b>에서 잴지 고릅니다.</td></tr>
+      <tr><td>H</td><td>직관은 <b>주관 외경 끝에서 트러니언 끝까지</b>(트러니언 축을 따라) 잰 길이입니다. 엘보는 위에서 고른 기준에서 트러니언 끝까지입니다.</td></tr>
+      <tr><td>용지</td><td>A4 가로 또는 A3 가로. 현도가 용지보다 크면 여러 장으로 나뉩니다.</td></tr>
+    </table></div>
+    <div class="note">입력한 값은 이 기기에 자동 저장되어 다음에 열 때도 남아 있습니다. 처음 값으로 되돌리려면 <b>초기화</b>를 누르세요.</div>
+
+    <h3>4-3. 결과 보는 법</h3>
+    <ul>
+      <li><b>숫자 카드</b>: 전개 폭(OD 둘레), 등분 간격, 곡선 최대 깊이, 최단·최장 컷 길이, 끝면 → 기준선 거리입니다. 컷 길이는 트러니언 <b>끝면에서 곡선까지</b> 잰 길이입니다.</li>
+      <li><b>개략도</b>: 배치 모양과 <b>0° 방향</b>을 보여줍니다. 현도의 0° 선을 이 방향에 맞춥니다. (수평 엘보는 평면도와 입면도가 함께 나옵니다.)</li>
+      <li><b>전개도 미리보기</b>: 실제 현도 모양입니다. 누르면 크게 열립니다.</li>
+      <li><b>등분 치수표</b>: 등분선마다 <b>기준선 → 곡선</b> 거리, <b>컷 길이</b>가 있습니다. 현도 없이 줄자로 마킹할 때 쓰는 표입니다.</li>
+    </ul>
+    <h3>4-4. 확대해서 보기</h3>
+    <ul>
+      <li>전개도 미리보기를 누르면 확대 창이 열립니다.</li>
+      <li><b>폰</b>: 한 손가락으로 끌어 이동, 두 손가락으로 벌리거나 오므려 확대·축소, 두 번 탭하면 확대됩니다.</li>
+      <li><b>PC</b>: 마우스로 끌어 이동, 더블클릭 또는 Ctrl+휠로 확대합니다. <b>화면 맞춤</b>으로 원래 크기로 돌아옵니다.</li>
+    </ul>
+    <h3>4-5. 빨간색·노란색 안내문</h3>
+    <ul>
+      <li><b>빨간색(오류)</b>: 입력이 잘못되었거나 계산할 수 없는 경우입니다. 안내에 따라 값을 고치면 사라집니다. 오류가 있으면 인쇄·저장 버튼이 꺼집니다.</li>
+      <li><b>노란색(경고)</b>: 계산은 되지만 확인이 필요한 경우입니다. (예: 트러니언이 주관보다 큼, 바깥 모서리 일부가 주관 밖으로 나감)</li>
+    </ul>
+  </div>
+
+  <div class="card" id="ytee">
+    <h2>5. Y-Tee 현도 계산기</h2>
+    <p>주관에 비스듬히 붙는 가지관(Y-Tee, 래터럴)을 만들 때 쓰는 계산기입니다. <b>두 가지 현도</b>를 한 번에 만듭니다.</p>
+    <ul>
+      <li><b>가지관 끝 현도</b>: 가지관 끝을 자르는 곡선입니다.</li>
+      <li><b>주관 구멍 현도</b>: 주관에 가지관을 꽂을 구멍을 뚫는 윤곽입니다.</li>
+    </ul>
+    <h3>입력 항목</h3>
+    <div class="tbl"><table>
+      <tr><th>항목</th><th>설명</th></tr>
+      <tr><td>주관, 가지관</td><td>트러니언 계산기와 같습니다. 인치를 고르면 OD와 두께가 자동으로 들어갑니다.</td></tr>
+      <tr><td>등분 수</td><td>둘레 등분 수입니다. 가지관과 주관 구멍이 <b>같은 번호로 맞닿습니다.</b></td></tr>
+      <tr><td>교차각 α</td><td>주관 축과 가지관 축 사이 각도입니다. Y-Tee는 보통 <b>45</b>, 90이면 직교 티입니다. 가지관은 주관 축의 +x 방향(예각 쪽)으로 기울어집니다.</td></tr>
+      <tr><td>편심 e</td><td>두 축 사이 거리입니다. 동심이면 0입니다.</td></tr>
+      <tr><td>H 입력 기준</td><td>H를 <b>주관 중심점</b>에서 잴지, <b>주관 외경 끝</b>(가지관 축이 주관 OD 면과 만나는 점)에서 잴지 고릅니다.</td></tr>
+      <tr><td>H</td><td>선택한 기준에서 가지관 끝까지 가지관 축을 따라 잰 길이입니다.</td></tr>
+    </table></div>
+    <h3>결과 보는 법</h3>
+    <ul>
+      <li><b>가지관 현도, 가지관 치수표</b>: 트러니언 계산기와 같은 방식으로 씁니다.</li>
+      <li><b>주관 구멍 현도</b>: 가로가 주관 축방향(오른쪽이 가지관이 기울어진 쪽), 세로가 원주방향입니다. 점선 <b>정상선</b>과 <b>축 교차선</b>이 위치 기준입니다.</li>
+      <li><b>주관 구멍 치수표</b>: 번호별 x(주관 축방향 위치), s(정상선에서 원주를 따라 잰 호 길이, +e 쪽이 +)가 있습니다. x는 축 교차점 기준과 구멍 시작점 기준 두 가지로 나옵니다.</li>
+      <li>숫자 카드의 <b>교차점 → 구멍 시작점</b>은 구멍이 시작되는 위치를 잡을 때 씁니다.</li>
+    </ul>
+  </div>
+
+  <div class="card" id="mark">
+    <h2>6. 출력한 현도로 마킹하기</h2>
+    <h3>6-1. 인쇄</h3>
+    <ol class="steps">
+      <li><b>1:1 인쇄</b>를 누르고, 인쇄 창에서 <b>배율을 100%(실제 크기)</b>로 둡니다. "용지에 맞춤"은 끄세요.</li>
+      <li>출력물 위쪽의 <b>100 mm 막대</b>를 자로 재서 정확히 100 mm인지 확인합니다. 아니면 배율을 다시 확인하세요.</li>
+      <li>여러 장이면 <b>회색 겹침 띠</b>를 맞춰 풀로 이어 붙입니다. 장마다 "겹침 → 2번 장" 같은 표시가 있습니다.</li>
+    </ol>
+    <h3>6-2. 가지관(트러니언) 끝 마킹</h3>
+    <ol class="steps">
+      <li>현도의 굵은 곡선을 따라 오립니다. 오른쪽 회색 부분은 겹침(풀칠) 여유입니다.</li>
+      <li>트러니언에 <b>직각 기준선</b>을 긋습니다. 위치는 숫자 카드의 <b>끝면 → 기준선</b> 값만큼 끝면에서 떨어진 곳입니다.</li>
+      <li>현도의 기준선을 파이프의 기준선에 맞춰 트러니언 OD에 감고, 곡선을 따라 마킹합니다.</li>
+      <li>현도의 <b>0° 선을 개략도에 표시된 방향</b>에 맞춥니다. 0° 방향이 틀리면 모양이 뒤집힙니다.</li>
+    </ol>
+    <h3>6-3. 주관 구멍 마킹 (Y-Tee)</h3>
+    <ol class="steps">
+      <li>주관의 가지관이 붙는 쪽 <b>중심 모선</b>(맨 위 직선)을 긋습니다. 현도의 <b>정상선</b>을 여기에 맞춥니다.</li>
+      <li>주관 위의 위치는 <b>축 교차선</b>(또는 "교차점 → 구멍 시작점" 값)으로 잡고, 현도를 감아 윤곽을 마킹합니다.</li>
+      <li>가지관을 얹을 때 <b>같은 번호끼리</b> 맞춥니다.</li>
+    </ol>
+    <h3>6-4. 현도 없이 줄자로 마킹</h3>
+    <p>치수표의 <b>기준선 → 곡선</b> 값을 등분선마다 기준선에서 재서 점을 찍고 이으면 같은 곡선이 됩니다. 주관 구멍도 치수표의 x, s 값으로 점을 찍을 수 있습니다.</p>
+  </div>
+
+  <div class="card" id="save">
+    <h2>7. 저장 기능 (PDF, Excel, DXF, SVG)</h2>
+    <div class="tbl"><table>
+      <tr><th>버튼</th><th>용도</th></tr>
+      <tr><td>1:1 인쇄</td><td>프린터로 바로 출력합니다.</td></tr>
+      <tr><td>PDF 저장</td><td>1:1 크기 그대로 PDF로 저장합니다. 메신저로 보내거나 사무실에서 출력할 때 편합니다.</td></tr>
+      <tr><td>Excel 저장</td><td>등분 치수표와 1도 간격 좌표를 엑셀 파일로 저장합니다.</td></tr>
+      <tr><td>DXF 저장</td><td>CAD 프로그램에서 열 수 있는 도면 파일로 저장합니다. 절단선과 기준선 등이 레이어로 나뉩니다.</td></tr>
+      <tr><td>SVG 저장</td><td>확대해도 깨지지 않는 벡터 이미지로 저장합니다. Y-Tee는 가지관과 주관 구멍이 파일 두 개로 저장됩니다.</td></tr>
+    </table></div>
+  </div>
+
+  <div class="card" id="faq">
+    <h2>8. 자주 묻는 질문</h2>
+    <details><summary>로그인이 안 돼요</summary>
+      <p>"관리자 승인 대기 중"이면 아직 승인 전입니다. 관리자에게 승인을 요청하세요. "이메일 또는 비밀번호가 올바르지 않습니다"면 입력을 확인하세요. 계정이 승인되지 않은 경우에는 "승인되지 않았습니다"가 표시됩니다.</p></details>
+    <details><summary>인터넷이 없는데 앱이 안 열려요</summary>
+      <p>인터넷이 되는 곳에서 로그인한 상태로 계산기 선택 화면, 트러니언, Y-Tee 화면을 한 번씩 열어 둬야 합니다. 열어 보지 않은 화면은 저장되지 않습니다. 로그아웃하면 저장된 내용도 지워지니, 현장에 가기 전에는 로그아웃하지 마세요.</p></details>
+    <details><summary>입력했는데 인쇄 버튼이 눌리지 않아요</summary>
+      <p>화면 위쪽에 빨간색 오류 안내가 있는지 확인하세요. 오류가 있으면 버튼이 꺼집니다. 안내대로 값을 고치면 켜집니다.</p></details>
+    <details><summary>출력물의 100 mm 막대가 100 mm가 아니에요</summary>
+      <p>인쇄 대화상자의 배율이 100%인지, "용지에 맞춤"이나 "페이지에 맞게"가 꺼져 있는지 확인하세요. 프린터 설정에서 여백 자동 조정이 있다면 끄세요.</p></details>
+    <details><summary>0° 선을 어디에 맞추는지 모르겠어요</summary>
+      <p>개략도 안의 "0°" 글자와 화살표가 가리키는 쪽입니다. 직관은 둔각 쪽, 엘보는 배면(바깥) 쪽 등 형태마다 다르니 개략도와 치수표의 "위치" 칸을 같이 보세요.</p></details>
+    <details><summary>계산 값이 현장 실측과 달라요</summary>
+      <p>① 호칭경에서 자동으로 들어간 외경·두께가 실제 자재와 같은지, ② H를 어느 기준(주관 외경 끝 / 중심 / BOP)으로 쟀는지, ③ 윤곽 기준(ID/OD), ④ 교차각과 편심을 확인하세요. 처음에는 한 곳에서 시험 마킹을 해 보고 실제 자재와 맞춰 보는 것을 권합니다.</p></details>
+    <details><summary>글꼴이 다르게 보여요</summary>
+      <p>글꼴은 인터넷에서 받아 두었다가 오프라인에서도 씁니다. 받지 못한 경우 폰 기본 한글 글꼴로 보이며, 계산 결과에는 영향이 없습니다.</p></details>
+    <div class="note">그 밖의 문의는 화면 맨 아래 이메일로 보내 주세요.</div>
+  </div>
+
+  <div class="card" id="admin">
+    <h2>9. 관리자용: 멤버 승인</h2>
+    <p>관리자 계정으로 로그인하면 계산기 선택 화면 오른쪽 위에 <b>멤버 관리</b> 링크가 보입니다.</p>
+    <ol>
+      <li><b>멤버 관리</b>를 열면 <b>승인 대기 / 승인됨 / 거부됨 / 전체</b> 탭이 있습니다. 기본은 승인 대기입니다.</li>
+      <li>각 줄에서 <b>이름, 이메일, 전화번호, 가입 시각</b>을 확인합니다. 전화번호를 누르면 전화를 걸 수 있습니다.</li>
+      <li>알고 있는 사람이면 <b>승인</b>, 아니면 <b>거부</b>를 누릅니다. 승인된 멤버는 <b>보류</b>로 되돌릴 수 있습니다.</li>
+    </ol>
+    <ul>
+      <li>상태를 바꾸면 그 멤버의 다음 접속부터 바로 적용됩니다. 승인이 취소되면 인터넷이 되는 순간 폰에 저장된 계산기도 지워집니다.</li>
+      <li>본인 계정의 상태는 이 화면에서 바꿀 수 없습니다.</li>
+      <li>이름과 전화번호는 개인정보입니다. 승인 확인 외의 용도로 쓰거나 외부에 공유하지 마세요.</li>
+    </ul>
+  </div>
+
+  <footer class="copy">© 2026 현도 계산기 · 문의: <a href="mailto:futura88@gmail.com">futura88@gmail.com</a></footer>
+</div>
+</body>
+</html>

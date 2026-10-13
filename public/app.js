@@ -9,7 +9,7 @@
     if (c) c.postMessage("clear");
   };
 
-  var PRIVATE = ["/home.html", "/trunnion-template.html", "/y-tee.html"];
+  var PRIVATE = ["/home.html", "/trunnion-template.html", "/y-tee.html", "/manual.html"];
   navigator.serviceWorker.register("/sw.js").then(function () {
     return navigator.serviceWorker.ready;
   }).then(function (reg) {
