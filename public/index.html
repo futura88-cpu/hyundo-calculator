@@ -64,12 +64,14 @@ input:focus-visible, button:focus-visible { outline: 2px solid var(--accent); ou
     </div>
     <form id="f">
       <label>이메일 <input id="email" type="email" autocomplete="username" required></label>
+      <label id="nameRow" hidden>이름 <input id="name" type="text" autocomplete="name" maxlength="30"></label>
+      <label id="phoneRow" hidden>전화번호 <input id="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="010-1234-5678"></label>
       <label>비밀번호 <input id="pw" type="password" autocomplete="current-password" minlength="8" required></label>
       <label class="chk" id="rememberRow"><input id="remember" type="checkbox"> 로그인 정보 기억하기</label>
       <button class="go" id="go" type="submit">로그인</button>
     </form>
     <div class="msg" id="msg" role="status" hidden></div>
-    <p class="hint" id="hint" hidden>가입 신청 후 관리자가 승인하면 로그인할 수 있습니다. 비밀번호는 8자 이상입니다.</p>
+    <p class="hint" id="hint" hidden>가입 신청 후 관리자가 승인하면 로그인할 수 있습니다. 비밀번호는 8자 이상입니다. 이름과 전화번호는 관리자가 가입자를 확인하는 용도로만 사용됩니다.</p>
     <p class="hint" id="rememberHint">체크하면 이 기기에서 30일간 로그인이 유지되고 이메일이 자동 입력됩니다. 비밀번호는 보안상 저장하지 않으니, 브라우저의 비밀번호 저장 안내가 뜨면 저장하세요. 공용 PC에서는 체크하지 마세요.</p>
   </div>
   <footer class="copy">© 2026 현도 계산기 · 문의: <a href="mailto:futura88@gmail.com">futura88@gmail.com</a></footer>
@@ -87,6 +89,9 @@ function setMode(m) {
   $("pw").autocomplete = m === "login" ? "current-password" : "new-password";
   $("hint").hidden = m === "login";
   $("rememberRow").hidden = $("rememberHint").hidden = m !== "login";
+  // 이름·전화번호는 가입 신청에서만 보이고 필수입니다. (숨긴 칸이 required면 제출이 막히므로 함께 전환)
+  $("nameRow").hidden = $("phoneRow").hidden = m !== "signup";
+  $("name").required = $("phone").required = m === "signup";
   show("");
 }
 // 기억한 이메일과 체크 상태 (비밀번호는 저장하지 않음)
@@ -117,7 +122,7 @@ $("f").addEventListener("submit", async e => {
   $("go").disabled = true; show("");
   try {
     const email = $("email").value.trim(), remember = $("remember").checked;
-    const { r, d } = await post(mode === "login" ? "/api/login" : "/api/signup", { email, password: $("pw").value, remember });
+    const { r, d } = await post(mode === "login" ? "/api/login" : "/api/signup", { email, password: $("pw").value, remember, name: $("name").value.trim(), phone: $("phone").value.trim() });
     if (r.ok && mode === "login") { writeSaved(remember ? email : ""); location.replace("/home.html"); return; }
     if (r.ok) { show(d.message || "가입 신청이 접수되었습니다.", "ok"); $("pw").value = ""; return; }
     show(d.error || "요청을 처리하지 못했습니다.", "bad");

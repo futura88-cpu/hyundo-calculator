@@ -5,10 +5,16 @@ module.exports = async (req, res) => {
   if (req.method !== "POST") return res.status(405).json({ error: "허용되지 않는 요청입니다." });
   if (!L.configured()) return res.status(500).json({ error: "서버 설정(Supabase 환경변수)이 되어 있지 않습니다." });
   const { email, password } = req.body || {};
+  const name = String((req.body && req.body.name) || "").trim();
+  const phone = String((req.body && req.body.phone) || "").trim();
   if (!email || !/^\S+@\S+\.\S+$/.test(email)) return res.status(400).json({ error: "올바른 이메일을 입력하세요." });
+  if (!name || name.length > 30) return res.status(400).json({ error: "이름을 입력하세요. (30자 이내)" });
+  const digits = phone.replace(/\D/g, "");
+  if (!/^[0-9+\-\s()]+$/.test(phone) || digits.length < 8 || digits.length > 15) return res.status(400).json({ error: "전화번호를 올바르게 입력하세요. (예: 010-1234-5678)" });
   if (!password || password.length < 8) return res.status(400).json({ error: "비밀번호는 8자 이상이어야 합니다." });
 
-  const r = await L.sb("/auth/v1/signup", { method: "POST", body: { email, password } });
+  // 이름·전화번호는 가입 정보(user_metadata)로 넘기고, DB 트리거가 profiles 에 복사합니다.
+  const r = await L.sb("/auth/v1/signup", { method: "POST", body: { email, password, data: { name, phone } } });
   if (!r.ok) {
     let msg = "";
     try { const d = await r.json(); msg = d.msg || d.error_description || d.message || ""; } catch (e) { /* 본문 없음 */ }

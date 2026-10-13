@@ -39,6 +39,8 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; align-items: center; padding: 10px 2px; border-top: 1px solid var(--line); }
 .row:first-child { border-top: 0; }
 .mail { font-weight: 500; overflow-wrap: anywhere; }
+.mail .addr { font-weight: 400; color: var(--muted); }
+.meta a { color: inherit; }
 .meta { color: var(--muted); font-size: 12px; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
 .badge { font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 99px; }
 .badge.pending { background: var(--warn-soft); color: var(--warn); }
@@ -96,8 +98,9 @@ function render() {
       m.status !== "rejected" ? `<button type="button" data-id="${m.id}" data-st="rejected">거부</button>` : "",
       m.status === "approved" ? `<button type="button" data-id="${m.id}" data-st="pending">보류</button>` : "",
     ].join("");
-    return `<div class="row"><div><div class="mail">${esc(m.email)}</div>` +
-      `<div class="meta"><span class="badge ${m.status}">${LABEL[m.status] || esc(m.status)}</span>${m.is_admin ? '<span class="badge admin">관리자</span>' : ""}<span>${fmt(m.created_at)} 가입</span></div></div>` +
+    const tel = m.phone ? `<a href="tel:${esc(String(m.phone).replace(/[^0-9+]/g, ""))}">${esc(m.phone)}</a>` : "전화번호 없음";
+    return `<div class="row"><div><div class="mail">${m.name ? `<b>${esc(m.name)}</b> ` : ""}<span class="addr">${esc(m.email)}</span></div>` +
+      `<div class="meta"><span class="badge ${m.status}">${LABEL[m.status] || esc(m.status)}</span>${m.is_admin ? '<span class="badge admin">관리자</span>' : ""}<span>${tel}</span><span>${fmt(m.created_at)} 가입</span></div></div>` +
       `<div class="acts">${acts}</div></div>`;
   }).join("") : `<div class="empty">${tab === "pending" ? "승인 대기 중인 멤버가 없습니다." : "해당하는 멤버가 없습니다."}</div>`;
 }
